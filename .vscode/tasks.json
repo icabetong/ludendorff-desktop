@@ -3,10 +3,10 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "start",
+			"script": "electron-dev",
 			"problemMatcher": [],
-			"label": "npm: start",
-			"detail": "react-scripts start"
+			"label": "Run Electron Development Mode",
+			"detail": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\""
 		}
 	]
 }
