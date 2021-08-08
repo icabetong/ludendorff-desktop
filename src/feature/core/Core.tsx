@@ -34,7 +34,18 @@ const typographyOverrides = {
     h5: {
         fontWeight: 700
     },
+    body1: {
+        fontSize: '1.1em',
+        fontWeight: 600,
+    },
     body2: {
+        fontWeight: 600
+    },
+    subtitle1: {
+        fontSize: '1em'
+    },
+    subtitle2: {
+        fontSize: '1em',
         fontWeight: 500
     }
 }
@@ -43,7 +54,8 @@ const lightTheme = createTheme({
     palette: {
         type: 'light',
         primary: {
-            main: '#bd93f9'
+            main: '#bd93f9',
+            dark: '#344775'
         },
         secondary: secondaryColors,
         error: errorColors,
