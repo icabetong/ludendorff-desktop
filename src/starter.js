@@ -8,7 +8,8 @@ const isDev = require('electron-is-dev');
 let mainWindow;
 
 function createWindow() {
-    mainWindow = new BrowserWindow({width: 800, height: 600});
+    mainWindow = new BrowserWindow({width: 800, height: 600, minHeight: 600, minWidth: 800});
+    mainWindow.removeMenu();
 
     const appUrl = isDev ? 'http://localhost:3000' 
         : `file://${path.join(__dirname, '../build/index.html')}`;
