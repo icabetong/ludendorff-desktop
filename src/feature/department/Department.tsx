@@ -1,4 +1,6 @@
-import { User, UserCore } from "../user/User";
+import { firestore } from "../../index"
+
+import { UserCore } from "../user/User";
 import { newId } from "../../shared/IdUtils";
 
 export class Department {
@@ -28,7 +30,7 @@ export class Department {
     static FIELD_DEPARTMENT_ID = "departmentId"
     static FIELD_DEPARTMENT_NAME = "departmentName"
     static FIELD_MANAGER_SNN = "managerSNN"
-    static FIELD_MANAGER_ID = Department.FIELD_MANAGER_SNN + '.' + User.FIELD_USER_ID
+    static FIELD_MANAGER_ID = Department.FIELD_MANAGER_SNN + ".userId"
     static FIELD_COUNT = "count"
 }
 
@@ -49,6 +51,31 @@ export class DepartmentCore {
 
 export class DepartmentRepository {
     static async create(department: Department): Promise<void> {
+        return await firestore.collection(Department.COLLECTION)
+            .doc(department.departmentId)
+            .set(department)
+    }
 
+    static async update(department: Department): Promise<void> {
+        return await firestore.collection(Department.COLLECTION)
+            .doc(department.departmentId)
+            .set(department)
+    }
+
+    static async remove(department: Department): Promise<void> {
+        return await firestore.collection(Department.COLLECTION)
+            .doc(department.departmentId)
+            .delete()
+    }
+
+    static async fetch(): Promise<Department[]> {
+        let departments: Department[] = [];
+
+        let task = await firestore.collection(Department.COLLECTION).get()
+        task.docs.forEach((document) => {
+            departments.push(Department.from(document.data()))
+        })
+
+        return departments
     }
 }
