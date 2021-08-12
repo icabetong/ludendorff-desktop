@@ -1,5 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import Box from "@material-ui/core/Box";
+import Button from "@material-ui/core/Button";
+import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import DialogTitle from "@material-ui/core/DialogTitle";
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
@@ -8,18 +15,18 @@ import Divider from "@material-ui/core/Divider";
 import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
 
-import HomeRoundedIcon from "@material-ui/icons/HomeRounded";
-import CropFreeRoundedIcon from "@material-ui/icons/CropFreeRounded";
-import DesktopWindowsRoundedIcon from "@material-ui/icons/DesktopWindowsRounded";
-import GroupRoundedIcon from "@material-ui/icons/GroupRounded";
-import AssignmentIndRoundedIcon from "@material-ui/icons/AssignmentIndRounded";
-import SettingsRoundedIcon from "@material-ui/icons/SettingsRounded";
-import ExitToAppRoundedIcon from "@material-ui/icons/ExitToAppRounded";
+import HomeIcon from "@heroicons/react/outline/HomeIcon";
+import QrcodeIcon from "@heroicons/react/outline/QrcodeIcon";
+import DesktopComputerIcon from "@heroicons/react/outline/DesktopComputerIcon";
+import UserGroupIcon from "@heroicons/react/outline/UserGroupIcon";
+import IdentificationIcon from "@heroicons/react/outline/IdentificationIcon";
+import CogIcon from "@heroicons/react/outline/CogIcon";
+import LogoutIcon from "@heroicons/react/outline/LogoutIcon";
 
 import firebase from "firebase/app";
 
 export enum Destination {
-    HOME, 
+    HOME = 1, 
     SCAN, 
     ASSETS, 
     USERS, 
@@ -34,15 +41,15 @@ type NavigationItemType = {
 }
 
 const destinations: NavigationItemType[] = [
-    { icon: <HomeRoundedIcon/>, title: "Home", destination: Destination.HOME },
-    { icon: <CropFreeRoundedIcon/>, title: "Scan", destination: Destination.SCAN },
-    { icon: <DesktopWindowsRoundedIcon/>, title: "Assets", destination: Destination.ASSETS },
-    { icon: <GroupRoundedIcon/>, title: "Users", destination: Destination.USERS },
-    { icon: <AssignmentIndRoundedIcon />, title: "Assignments", destination: Destination.ASSIGNMENTS }
+    { icon: <HomeIcon/>, title: "home", destination: Destination.HOME },
+    { icon: <QrcodeIcon/>, title: "scan", destination: Destination.SCAN },
+    { icon: <DesktopComputerIcon/>, title: "assets", destination: Destination.ASSETS },
+    { icon: <UserGroupIcon/>, title: "users", destination: Destination.USERS },
+    { icon: <IdentificationIcon/>, title: "assignments", destination: Destination.ASSIGNMENTS }
 ]
 
 const minorDestinations: NavigationItemType[] = [
-    { icon: <SettingsRoundedIcon/>, title: "Settings", destination: Destination.SETTINGS },
+    { icon: <CogIcon/>, title: "settings", destination: Destination.SETTINGS },
 ]
 
 type NavigationComponentPropsType =  {
@@ -51,9 +58,16 @@ type NavigationComponentPropsType =  {
 }
 
 export const NavigationComponent = (props: NavigationComponentPropsType) => {
+    const [triggerConfirmSignOut, setTriggerConfirmSignOut] = useState<boolean>(false);
+    const { t, i18n } = useTranslation();
+
+    const confirmSignOut = () => {
+        setTriggerConfirmSignOut(true);
+    }
 
     const triggerSignOut = () => {
         firebase.auth().signOut();
+        setTriggerConfirmSignOut(false);
     }
 
     return (
@@ -71,15 +85,29 @@ export const NavigationComponent = (props: NavigationComponentPropsType) => {
                     destination={props.currentDestination}
                     onNavigate={props.onNavigate}/>
                 <NavigationListItem
-                    navigation={{icon: <ExitToAppRoundedIcon/>, title: "Sign-out"}}
+                    itemKey={0}
+                    navigation={{icon: <LogoutIcon/>, title: t("signout")}}
                     isActive={false}
-                    action={() => triggerSignOut()}/>
+                    action={() => confirmSignOut()}/>
             </List>
+            <Dialog
+                open={triggerConfirmSignOut}
+                onClose={() => setTriggerConfirmSignOut(false)}>
+                <DialogTitle>{ t("confirm_signout") }</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>{ t("confirm_signout_message") }</DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button color="primary" onClick={() => setTriggerConfirmSignOut(false)}>{ t("cancel") }</Button>
+                    <Button color="primary" onClick={triggerSignOut}>{ t("continue") }</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     )
 }
 
 type NavigationListItemPropsType = {
+    itemKey: any,
     navigation: NavigationItemType,
     action: () => void,
     isActive: boolean
@@ -95,17 +123,19 @@ const NavigationListItem = (props: NavigationListItemPropsType) => {
         }
     }))
     const classes = useStyles();
+    
+    const { t, i18n } = useTranslation();
 
     return (
         <ListItem 
                 button
                 className={classes.container} 
-                key={props.navigation.destination} 
+                key={props.itemKey} 
                 selected={props.isActive}
                 onClick={props.action}>
                 <ListItemIcon>{props.navigation.icon}</ListItemIcon>
                 <ListItemText primary={
-                    <Typography variant="body2" noWrap>{props.navigation.title}</Typography>
+                    <Typography variant="body2" noWrap>{ t(props.navigation.title) }</Typography>
                 }/>
             </ListItem> 
     )
@@ -123,9 +153,10 @@ const NavigationList = (props: NavigationListPropsType) => {
         <React.Fragment>{
             props.items.map((navigation: NavigationItemType) => {
                 return <NavigationListItem
+                            itemKey={navigation.destination}
                             navigation={navigation}
                             action={() => props.onNavigate(navigation.destination!!)}
-                            isActive={props.destination == navigation.destination} />
+                            isActive={props.destination === navigation.destination} />
                 
             })
         }</React.Fragment>

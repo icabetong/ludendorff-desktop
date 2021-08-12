@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { BrowserRouter, Route, Switch } from 'react-router-dom'
-import { createTheme, ThemeProvider } from '@material-ui/core/styles'
+import { Router, Route, Switch } from 'react-router-dom';
+import { createTheme, ThemeProvider } from '@material-ui/core/styles';
 
 import AuthComponent from '../auth/Auth'
-import RootComponent from '../root/Root'
-import { CssBaseline, responsiveFontSizes } from '@material-ui/core'
+import RootComponent from '../root/Root';
+import history from "../navigation/History";
+import { CssBaseline } from '@material-ui/core'
+import { ErrorComponent } from "../error/ErrorComponent";
 
 const secondaryColors = {
     main: '#ff5555',
@@ -34,10 +36,6 @@ const typographyOverrides = {
     h5: {
         fontWeight: 700,
         fontSize: '2em'
-    },
-    body1: {
-        fontSize: '1.1em',
-        fontWeight: 600,
     },
     body2: {
         fontWeight: 600
@@ -111,12 +109,13 @@ export const CoreComponent = () => {
             <ThemeProvider theme={isThemeDark ? darkTheme : lightTheme}>
                 <ThemeContext.Provider value={{themeIsDark: isThemeDark, setTheme: setDarkTheme}}>
                     <CssBaseline/>                    
-                        <BrowserRouter>
+                        <Router history={history}>
                             <Switch>
-                                <Route path="/" exact component={RootComponent}/>
+                                <Route path="/" component={RootComponent} exact/>
                                 <Route path="/auth" component={AuthComponent}/>
+                                <Route path="/error" component={ErrorComponent}/>
                             </Switch>
-                        </BrowserRouter>
+                        </Router>
                 </ThemeContext.Provider>
            </ThemeProvider>
         </div>
