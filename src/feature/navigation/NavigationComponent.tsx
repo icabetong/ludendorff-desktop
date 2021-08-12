@@ -11,6 +11,7 @@ import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import ListItemText from "@material-ui/core/ListItemText";
+import ListSubheader from "@material-ui/core/ListSubheader";
 import Divider from "@material-ui/core/Divider";
 import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
@@ -59,7 +60,7 @@ type NavigationComponentPropsType =  {
 
 export const NavigationComponent = (props: NavigationComponentPropsType) => {
     const [triggerConfirmSignOut, setTriggerConfirmSignOut] = useState<boolean>(false);
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
 
     const confirmSignOut = () => {
         setTriggerConfirmSignOut(true);
@@ -72,6 +73,7 @@ export const NavigationComponent = (props: NavigationComponentPropsType) => {
 
     return (
         <Box>
+            <ListSubheader>{ t("manage") }</ListSubheader>
             <List>
                 <NavigationList 
                     items={destinations} 
@@ -79,6 +81,7 @@ export const NavigationComponent = (props: NavigationComponentPropsType) => {
                     onNavigate={props.onNavigate}/>
             </List>
             <Divider/>
+            <ListSubheader>{ t("account") }</ListSubheader>
             <List>
                 <NavigationList
                     items={minorDestinations}
@@ -124,20 +127,20 @@ const NavigationListItem = (props: NavigationListItemPropsType) => {
     }))
     const classes = useStyles();
     
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
 
     return (
         <ListItem 
-                button
-                className={classes.container} 
-                key={props.itemKey} 
-                selected={props.isActive}
-                onClick={props.action}>
-                <ListItemIcon>{props.navigation.icon}</ListItemIcon>
-                <ListItemText primary={
-                    <Typography variant="body2" noWrap>{ t(props.navigation.title) }</Typography>
-                }/>
-            </ListItem> 
+            button
+            className={classes.container} 
+            key={props.itemKey} 
+            selected={props.isActive}
+            onClick={props.action}>
+            <ListItemIcon>{props.navigation.icon}</ListItemIcon>
+            <ListItemText primary={
+                <Typography variant="body2" noWrap>{ t(props.navigation.title) }</Typography>
+            }/>
+        </ListItem> 
     )
 }
 
@@ -148,11 +151,11 @@ type NavigationListPropsType = {
 }
 
 const NavigationList = (props: NavigationListPropsType) => {
-
     return (
         <React.Fragment>{
             props.items.map((navigation: NavigationItemType) => {
                 return <NavigationListItem
+                            key={navigation.destination}
                             itemKey={navigation.destination}
                             navigation={navigation}
                             action={() => props.onNavigate(navigation.destination!!)}

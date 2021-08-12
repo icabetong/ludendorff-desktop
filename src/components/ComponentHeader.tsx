@@ -1,15 +1,23 @@
+import React, { useState } from "react";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
+import Button from "@material-ui/core/Button";
 import IconButton from "@material-ui/core/IconButton";
 import Hidden from "@material-ui/core/Hidden";
+import Menu from "@material-ui/core/Menu";
 import Typography from "@material-ui/core/Typography";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 
+import DotsVerticalIcon from "@heroicons/react/outline/DotsVerticalIcon";
 import MenuIcon from "@heroicons/react/outline/MenuIcon";
 
 type ComponentHeaderPropsType = {
     title: string,
-    onDrawerToggle: () => void
+    onDrawerToggle: () => void,
+    buttonText?: string,
+    buttonIcon?: JSX.Element,
+    buttonOnClick?: React.MouseEventHandler,
+    menuItems?: JSX.Element[]
 }
 
 export const ComponentHeader = (props: ComponentHeaderPropsType) => {
@@ -24,13 +32,29 @@ export const ComponentHeader = (props: ComponentHeaderPropsType) => {
                 display: 'none'
             },
         },
+        actionButton: {
+            marginLeft: 'auto'
+        },
+        overflowButton: {
+            marginLeft: theme.spacing(2)
+        },
+        title: {
+            width: '100%',
+        },
         icon: {
             color: theme.palette.text.primary,
             width: '1em',
             height: '1em'
-        }
+        },
     }));
     const classes = useStyles();
+
+    const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+    const menuOpen = Boolean(anchor);
+    const anchorProperties = {
+        vertical: 'top',
+        horizontal: 'right'
+    } as const
 
     return (
         <AppBar position="static" className={classes.appBar} color="transparent" elevation={0}>
@@ -43,7 +67,7 @@ export const ComponentHeader = (props: ComponentHeaderPropsType) => {
                         <MenuIcon className={classes.icon}/>
                 </IconButton>
                 <Hidden only="xs">
-                    <Typography variant="h5" noWrap>
+                    <Typography variant="h5" className={classes.title} noWrap>
                         {props.title}
                     </Typography>
                 </Hidden>
@@ -52,6 +76,40 @@ export const ComponentHeader = (props: ComponentHeaderPropsType) => {
                         {props.title}
                     </Typography>
                 </Hidden>
+                { props.buttonText &&
+                    <Button 
+                        variant="outlined"
+                        color="primary"
+                        className={classes.actionButton}
+                        startIcon={props.buttonIcon}
+                        onClick={props.buttonOnClick}>
+                        {props.buttonText}
+                    </Button>
+                }
+                { props.menuItems &&
+                    <div>
+                        <IconButton
+                            className={classes.overflowButton}
+                            aria-haspopup="true"
+                            onClick={(e: React.MouseEvent<HTMLElement>) => setAnchor(e.currentTarget)}>
+                            <DotsVerticalIcon className={classes.icon}/>
+                        </IconButton>
+                        <Menu
+                            keepMounted
+                            anchorEl={anchor}
+                            anchorOrigin={anchorProperties}
+                            transformOrigin={anchorProperties}
+                            open={menuOpen}
+                            onClose={() => setAnchor(null)}
+                            onMouseLeave={() => setAnchor(null)}>
+                            {props.menuItems && 
+                                props.menuItems.map((menuItem) => {
+                                return menuItem
+                                })
+                            }
+                        </Menu>
+                    </div>
+                }
             </Toolbar>
         </AppBar>
     )

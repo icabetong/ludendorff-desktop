@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Router, Route, Switch } from 'react-router-dom';
+import { CssBaseline } from '@material-ui/core'
 import { createTheme, ThemeProvider } from '@material-ui/core/styles';
 
 import AuthComponent from '../auth/Auth'
 import RootComponent from '../root/Root';
 import history from "../navigation/History";
-import { CssBaseline } from '@material-ui/core'
 import { ErrorComponent } from "../error/ErrorComponent";
 
 const secondaryColors = {
@@ -53,13 +53,17 @@ const lightTheme = createTheme({
     palette: {
         type: 'light',
         primary: {
-            main: '#bd93f9',
+            main: '#6272a4',
             dark: '#344775'
         },
         secondary: secondaryColors,
         error: errorColors,
         background: {
-            default: '#f8f8f2'
+            default: '#ffffff',
+            paper: '#ffffff'
+        },
+        text: {
+            primary: '#000000'
         }
     },
     typography: {
@@ -81,7 +85,11 @@ const darkTheme = createTheme({
         background: {
             default: '#1e1f29',
             paper: '#44475a'
-        }
+        },
+        text: {
+            primary: '#f8f8f2'
+        },
+        divider: '#6f7287'
     },
     typography: {
         fontFamily: fonts
@@ -92,22 +100,23 @@ const darkTheme = createTheme({
 })
 
 type ThemeContextType = {
-    themeIsDark: Boolean,
+    darkThemeEnabled: boolean,
     setTheme: Function
 }
 
 export const ThemeContext = React.createContext<ThemeContextType>({
-    themeIsDark: false,
+    darkThemeEnabled: false,
     setTheme: () => {}
 });
 
 export const CoreComponent = () => {
-    const [isThemeDark, setDarkTheme] = useState<Boolean>(false);
+    const [isThemeDark, setDarkTheme] = useState<boolean>(false);
     
     return (
         <div>
-            <ThemeProvider theme={isThemeDark ? darkTheme : lightTheme}>
-                <ThemeContext.Provider value={{themeIsDark: isThemeDark, setTheme: setDarkTheme}}>
+            <ThemeContext.Provider value={{darkThemeEnabled: isThemeDark, setTheme: setDarkTheme}}>
+                {/* https://stackoverflow.com/questions/60909608/material-ui-theme-does-not-change-back */}
+                <ThemeProvider theme={isThemeDark ? {...darkTheme} : {...lightTheme}}>
                     <CssBaseline/>                    
                         <Router history={history}>
                             <Switch>
@@ -116,8 +125,8 @@ export const CoreComponent = () => {
                                 <Route path="/error" component={ErrorComponent}/>
                             </Switch>
                         </Router>
-                </ThemeContext.Provider>
-           </ThemeProvider>
+                </ThemeProvider>
+           </ThemeContext.Provider>
         </div>
     )
 }
