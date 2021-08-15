@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Button from "@material-ui/core/Button";
@@ -20,33 +21,34 @@ type ComponentHeaderPropsType = {
     menuItems?: JSX.Element[]
 }
 
+const useStyles = makeStyles((theme) => ({
+    appBar: {
+        zIndex: theme.zIndex.drawer + 1,
+    },
+    toolbar: theme.mixins.toolbar,
+    navigationButton: {
+        marginRight: theme.spacing(2),
+        [theme.breakpoints.up('sm')]: {
+            display: 'none'
+        },
+    },
+    actionButton: {
+        marginLeft: 'auto'
+    },
+    overflowButton: {
+        marginLeft: theme.spacing(2)
+    },
+    title: {
+        width: '100%',
+    },
+    icon: {
+        color: theme.palette.text.primary,
+        width: '1em',
+        height: '1em'
+    },
+}));
 export const ComponentHeader = (props: ComponentHeaderPropsType) => {
-    const useStyles = makeStyles((theme) => ({
-        appBar: {
-            zIndex: theme.zIndex.drawer + 1,
-        },
-        toolbar: theme.mixins.toolbar,
-        navigationButton: {
-            marginRight: theme.spacing(2),
-            [theme.breakpoints.up('sm')]: {
-                display: 'none'
-            },
-        },
-        actionButton: {
-            marginLeft: 'auto'
-        },
-        overflowButton: {
-            marginLeft: theme.spacing(2)
-        },
-        title: {
-            width: '100%',
-        },
-        icon: {
-            color: theme.palette.text.primary,
-            width: '1em',
-            height: '1em'
-        },
-    }));
+    const { t } = useTranslation();
     const classes = useStyles();
 
     const [anchor, setAnchor] = useState<null | HTMLElement>(null);
@@ -60,10 +62,10 @@ export const ComponentHeader = (props: ComponentHeaderPropsType) => {
         <AppBar position="static" className={classes.appBar} color="transparent" elevation={0}>
             <Toolbar>
                 <IconButton
-                    aria-label="Open Drawer"
                     edge="start"
                     onClick={props.onDrawerToggle}
-                    className={classes.navigationButton}>
+                    className={classes.navigationButton}
+                    aria-label={ t("show_drawer") }>
                         <MenuIcon className={classes.icon}/>
                 </IconButton>
                 <Hidden only="xs">
@@ -82,7 +84,8 @@ export const ComponentHeader = (props: ComponentHeaderPropsType) => {
                         color="primary"
                         className={classes.actionButton}
                         startIcon={props.buttonIcon}
-                        onClick={props.buttonOnClick}>
+                        onClick={props.buttonOnClick}
+                        aria-label={props.buttonText}>
                         {props.buttonText}
                     </Button>
                 }
@@ -91,6 +94,7 @@ export const ComponentHeader = (props: ComponentHeaderPropsType) => {
                         <IconButton
                             className={classes.overflowButton}
                             aria-haspopup="true"
+                            aria-label={ t("show_menu") }
                             onClick={(e: React.MouseEvent<HTMLElement>) => setAnchor(e.currentTarget)}>
                             <DotsVerticalIcon className={classes.icon}/>
                         </IconButton>

@@ -13,7 +13,7 @@ export class Asset {
     dateCreated?: Timestamp
     status?: Status
     category?: CategoryCore
-    specifications?: Map<String, String>
+    specifications?: Map<string, string>
 
     constructor(id = newId()) {
         this.assetId = id

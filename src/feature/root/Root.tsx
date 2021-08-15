@@ -1,21 +1,22 @@
-import { useContext, useState } from "react";
+import { useContext, useState, Suspense, lazy } from "react";
 import { Redirect } from "react-router";
 import { withRouter } from "react-router-dom";
-import CircularProgress from "@material-ui/core/CircularProgress";
 import Drawer from "@material-ui/core/Drawer";
-import Grid from "@material-ui/core/Grid";
 import Hidden from "@material-ui/core/Hidden";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 
 import { AuthContext, AuthFetched, AuthPending } from "../auth/AuthProvider";
-import { HomeComponent } from "../home/HomeComponent";
-import { ScanComponent } from "../scan/ScanComponent";
-import { AssetComponent } from "../asset/AssetComponent";
-import { UserComponent } from "../user/UserComponent";
-import { AssignmentComponent } from "../assignment/AssignmentComponent";
-import { ErrorComponent } from "../error/ErrorComponent";
+
 import { Destination, NavigationComponent } from "../navigation/NavigationComponent";
 import { SettingsComponent } from "../settings/SettingsComponent";
+import { ErrorNotFoundStateComponent } from "../state/ErrorStates";
+import { MainLoadingStateComponent, ContentLoadingStateComponent } from "../state/LoadingStates";
+
+const HomeComponent = lazy(() => import('../home/HomeComponent'));
+const ScanComponent = lazy(() => import('../scan/ScanComponent'));
+const AssetComponent = lazy(() => import('../asset/AssetComponent'));
+const UserComponent = lazy(() => import('../user/UserComponent'));
+const AssignmentComponent = lazy(() => import('../assignment/AssignmentComponent'));
 
 type InnerComponentPropsType = {
     destination: Destination,
@@ -37,24 +38,8 @@ const InnerComponent = (props: InnerComponentPropsType) => {
         case Destination.SETTINGS:
             return <SettingsComponent onDrawerToggle={props.onDrawerToggle}/>
         default:
-            return <ErrorComponent/>
+            return <ErrorNotFoundStateComponent/>
     }
-}
-
-const LoadingScreenComponent = () => {
-    const useStyles = makeStyles((theme) => ({
-        root: {
-            width: '100vw',
-            height: '100vh'
-        }
-    }));
-    const classes = useStyles();
-
-    return (
-        <Grid container alignItems="center" justifyContent="center" className={classes.root}>
-            <CircularProgress/>
-        </Grid>
-    )
 }
 
 type RootContainerComponentPropsType = {
@@ -100,9 +85,14 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
         setDrawerOpen(!drawerOpen);
     }
 
+    const onNavigateThenDismiss = (destination: Destination) => {
+        setDrawerOpen(false)
+        props.onNavigate(destination)
+    }
+
     const drawerItems = (
         <NavigationComponent 
-            onNavigate={props.onNavigate} 
+            onNavigate={onNavigateThenDismiss} 
             currentDestination={props.currentDestination}/>
     )
 
@@ -136,7 +126,9 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
                 </Hidden>
             </nav>
             <div className={classes.content}>
-                <InnerComponent destination={props.currentDestination} onDrawerToggle={onToggleDrawerState}/>
+                <Suspense fallback={<ContentLoadingStateComponent/>}>
+                    <InnerComponent destination={props.currentDestination} onDrawerToggle={onToggleDrawerState}/>
+                </Suspense>
             </div>
         </div>
     );
@@ -151,7 +143,7 @@ const RootComponent = () => {
     }
 
     if (authState instanceof AuthPending) {
-        return <LoadingScreenComponent/>
+        return <MainLoadingStateComponent/>
     } else if (authState instanceof AuthFetched) {
         if (authState.user != null) {
             return (

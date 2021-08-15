@@ -1,100 +1,84 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 import Box from "@material-ui/core/Box";
-import Button from "@material-ui/core/Button";
-import Container from "@material-ui/core/Container";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import FormControl from "@material-ui/core/FormControl";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import FormLabel from "@material-ui/core/FormLabel";
 import Hidden from "@material-ui/core/Hidden";
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
 import MenuItem from "@material-ui/core/MenuItem";
-import Radio from "@material-ui/core/Radio";
-import RadioGroup from "@material-ui/core/RadioGroup";
-import TextField from "@material-ui/core/TextField";
-import useMediaQuery from "@material-ui/core/useMediaQuery";
-import { makeStyles, useTheme } from "@material-ui/core/styles";
-import { DataGrid, GridValueGetterParams } from "@material-ui/data-grid";
+import { makeStyles } from "@material-ui/core/styles";
+import { DataGrid, GridRowParams, GridValueGetterParams } from "@material-ui/data-grid";
+import { DocumentSnapshot, DocumentData } from "@firebase/firestore-types";
 
 import PlusIcon from "@heroicons/react/outline/PlusIcon";
 
 import { ListItemContent } from "../../components/ListItemContent";
 import { ComponentHeader } from "../../components/ComponentHeader";
 import { Asset, AssetRepository, Status } from "./Asset";
-import { Category, CategoryRepository } from "../category/Category";
-import { CategoryComponent } from "../category/CategoryComponent";
-import { DocumentSnapshot, DocumentData } from "@firebase/firestore-types";
+import { Category, CategoryCore, CategoryRepository } from "../category/Category";
 
+const AssetEditorComponent = lazy(() => import("./AssetEditorComponent"));
+const CategoryComponent = lazy(() => import("../category/CategoryComponent"));
+const QrCodeViewComponent = lazy(() => import("../qrcode/QrCodeViewComponent"));
+const CategoryEditorComponent = lazy(() => import("../category/CategoryEditorComponent"));
+const SpecificationEditorComponent = lazy(() => import("../specs/SpecificationEditorComponent"));
+
+const useStyles = makeStyles((theme) => ({
+    root: {
+        height: '100%',
+        width: '100%'
+    },
+    icon: {
+        width: '1em',
+        height: '1em',
+    },
+    actionButtonIcon: {
+        color: theme.palette.primary.main
+    },
+    overflowButtonIcon: {
+        color: theme.palette.text.primary
+    },
+    overflowButton: {
+        marginLeft: '0.6em'
+    },
+    wrapper: {
+        height: '80%',
+        padding: '1.4em'
+    },
+    editorContainer: {
+        width: '100%',
+        margin: '0.8em',
+    },
+    editor: {
+        marginTop: '0.6em',
+        marginBottom: '0.6em'
+    },
+    textField: {
+        width: '100%'
+    }
+}));
 
 type AssetComponentPropsType = {
     onDrawerToggle: () => void
 }
-type SpecificationListItemsPropsType = {
-    onItemSelected: (specs: [string, string]) => void
-}
 
-export const AssetComponent = (props: AssetComponentPropsType) => {
-    const useStyles = makeStyles((theme) => ({
-        root: {
-            height: '100%',
-            width: '100%'
-        },
-        icon: {
-            width: '1em',
-            height: '1em',
-        },
-        actionButtonIcon: {
-            color: theme.palette.primary.main
-        },
-        overflowButtonIcon: {
-            color: theme.palette.text.primary
-        },
-        overflowButton: {
-            marginLeft: '0.6em'
-        },
-        wrapper: {
-            height: '80%',
-            padding: '1.4em'
-        },
-        editorContainer: {
-            width: '100%',
-            margin: '0.8em',
-        },
-        editor: {
-            marginTop: '0.6em',
-            marginBottom: '0.6em'
-        },
-        textField: {
-            width: '100%'
-        }
-    }));
+const AssetComponent = (props: AssetComponentPropsType) => {
     const classes = useStyles();
-    const theme = useTheme();
-    const fullscreen = useMediaQuery(theme.breakpoints.down('xs'));
+    const { t } = useTranslation();
 
     const columns = [
-        { field: Asset.FIELD_ASSET_ID, headerName: 'ID', hide: true },
-        { field: Asset.FIELD_ASSET_NAME, headerName: 'Name', flex: 1 },
-        { field: Asset.FIELD_CATEGORY, headerName: 'Category', flex: 0.5, valueGetter: (params: GridValueGetterParams) => params.row.category?.categoryName },
-        { field: Asset.FIELD_DATE_CREATED, headerName: 'Date Created', flex: 0.5, valueGetter: (params: GridValueGetterParams) => params.row.formatDate() },
-        { field: Asset.FIELD_STATUS, headerName: 'Status', flex: 0.35, valueGetter: (params: GridValueGetterParams) => t(params.row.getLocalizedStatus()) }
+        { field: Asset.FIELD_ASSET_ID, headerName: t("id"), hide: true },
+        { field: Asset.FIELD_ASSET_NAME, headerName: t("name"), flex: 1 },
+        { field: Asset.FIELD_CATEGORY, headerName: t("category"), flex: 0.5, valueGetter: (params: GridValueGetterParams) => params.row.category?.categoryName },
+        { field: Asset.FIELD_DATE_CREATED, headerName: t("date_created"), flex: 0.5, valueGetter: (params: GridValueGetterParams) => params.row.formatDate() },
+        { field: Asset.FIELD_STATUS, headerName: t("status"), flex: 0.35, valueGetter: (params: GridValueGetterParams) => t(params.row.getLocalizedStatus()) }
     ];
-
-    const { t } = useTranslation();
 
     const [assets, setAssets] = useState<Asset[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [pageNumber, setPageNumber] = useState<number>(0);
     const [documentHistory, setDocumentHistory] = useState<DocumentSnapshot<DocumentData>[]>([]);
 
-    
     useEffect(() => {
         AssetRepository.fetch(documentHistory[documentHistory.length - 1])
             .then((data: [Asset[], DocumentSnapshot<DocumentData>]) => {
@@ -126,130 +110,108 @@ export const AssetComponent = (props: AssetComponentPropsType) => {
         setPageNumber(pageNumber - 1);
     }
     const [isEditorOpened, setEditorOpened] = useState<boolean>(false);
+    const [editorAssetId, setEditorAssetId] = useState<string>('');
     const [editorAssetName, setEditorAssetName] = useState<string>('');
     const [editorStatus, setEditorStatus] = useState<Status>(Status.IDLE);
-    const [editorCategory, setEditorCategory] = useState<Category | null>(null);
-    const [editorSpecifications, setEditorSpecifications] = useState<[string, string][]>([]);
+    const [editorCategory, setEditorCategory] = useState<CategoryCore | null>(null);
+    const [editorSpecifications, setEditorSpecifications] = useState<Map<string, string>>(new Map<string, string>());
 
-    const resetEditorForms = () => {
-        setEditorAssetName('');
-        setEditorStatus(Status.IDLE);
-        setEditorCategory(null);
-        setEditorSpecifications([]);
-
-        setEditorOpened(false);
-    }
-    
-    const onEditorStatusChanged = (event: React.ChangeEvent<HTMLInputElement>) => { 
-        setEditorStatus(event.target.value as Status);
-    }
-    const onEditorCategoryChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let index = parseInt(event.target.value);
-        if (index < categories.length) {
-            setEditorCategory(categories[index]);
+    useEffect(() => {
+        if (!isEditorOpened) {
+            setTimeout(() => {
+                setEditorAssetName('');
+                setEditorStatus(Status.IDLE);
+                setEditorCategory(null);
+                setEditorSpecifications(new Map<string, string>());
+            }, 500);
         }
+    }, [isEditorOpened]);
+
+    const onCommitAssetEditor = () => {
+        
     }
 
-    const [isSpecsEditorOpened, setSpecsEditorOpened] = useState<boolean>(false);
-    const [isSpecsEditorInUpdateMode, setSpecsEditorInUpdateMode] = useState<boolean>(false);
-    const [editorSpecsKey, setEditorSpecsKey] = useState<string>('');
-    const [editorSpecsValue, setEditorSpecsValue] = useState<string>('');
-
-    const resetSpecsEditorForms = () => {
-        setSpecsEditorInUpdateMode(false);
-        setEditorSpecsKey('');
-        setEditorSpecsValue('');
-        setSpecsEditorOpened(false);
+    const onAssetSelected = (asset: Asset) => {
+        setEditorAssetId(asset.assetId);
+        setEditorAssetName(asset.assetName !== undefined ? asset.assetName : '');
+        setEditorStatus(asset.status !== undefined ? asset.status : Status.IDLE);
+        setEditorCategory(asset.category !== undefined ? asset.category : null);
+        setEditorSpecifications(asset.specifications !== undefined ? asset.specifications : new Map<string, string>());
+        setEditorOpened(true);
     }
-    const onSpecificationEditorCommit = () => {
-        if (!isSpecsEditorInUpdateMode) {
+
+    const [isSpecificationEditorOpened, setSpecificationEditorOpened] = useState<boolean>(false);
+    const [specificationKey, setSpecificationKey] = useState<string>('');
+    const [specificationValue, setSpecificationValue] = useState<string>('');
+
+    useEffect(() => {
+        if (!isSpecificationEditorOpened) {
+            setTimeout(() => {
+                setSpecificationKey('');
+                setSpecificationValue('');
+            }, 500);
+        }
+    }, [isSpecificationEditorOpened])
+
+    const onSpecificationEditorCommit = (specification: [string, string], isUpdate: boolean) => {
+        if (!isUpdate) {
             let specifications = editorSpecifications;
-            specifications.push([editorSpecsKey, editorSpecsValue]);
+            specifications.set(specification[0], specification[1]);
+            
+            setEditorSpecifications(specifications);
         } else {
             let specifications = editorSpecifications;
-            let index = specifications.findIndex(s => s[0] == editorSpecsKey);
-            if (index > -1) {
-                specifications[index] = [editorSpecsKey, editorSpecsValue];
-                setEditorSpecifications([...specifications]);
+            // check if the key in the map exists
+            if (specification[0] in specifications) {
+                specifications.set(specification[0], specification[1]);
+                setEditorSpecifications(new Map<string, string>(specifications));
             }
         }
-        setSpecsEditorOpened(false);
+        setSpecificationEditorOpened(false);
     }
     const onSpecificationItemSelected = (spec: [string, string]) => {
-        setEditorSpecsKey(spec[0]);
-        setEditorSpecsValue(spec[1]);
-        setSpecsEditorInUpdateMode(true);
-        setSpecsEditorOpened(true);
+        setSpecificationKey(spec[0]);
+        setSpecificationValue(spec[1]);
+        setSpecificationEditorOpened(true);
     }
 
-    const onSpecificationKeyChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setEditorSpecsKey(event.target.value);
-    }
-    const onSpecificationValueChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setEditorSpecsValue(event.target.value);
-    }
+    const [isQrCodeView, setQrCodeView] = useState<boolean>(false);
 
     const [isCategoryScreenOpened, setCategoryScreenOpened] = useState<boolean>(false);
     
     const onCategoryItemSelected = (category: Category) => {
-        setCategoryEditorInUpdateMode(true);
-    
         setEditorCategoryId(category.categoryId);
-        setEditorCategoryName(category.categoryName !== undefined ? category.categoryName : '');
+        setEditorCategoryName(category.categoryName !== undefined ? category.categoryName : 'undefined');
 
         setCategoryEditorOpened(true);
     }
 
     const [isCategoryEditorOpened, setCategoryEditorOpened] = useState<boolean>(false);
-    const [isCategoryEditorInUpdateMode, setCategoryEditorInUpdateMode] = useState<boolean>(false);
     const [editorCategoryId, setEditorCategoryId] = useState<string>('');
     const [editorCategoryName, setEditorCategoryName] = useState<string>('');
-    const resetCategoryEditorForms = () => {
-        setCategoryEditorInUpdateMode(false);
-        setEditorCategoryId('');
-        setEditorCategoryName('');
-        setCategoryEditorOpened(false);
-    }
 
-    const onCategoryEditorNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setEditorCategoryName(event.target.value);
-    }
+    useEffect(() => {
+        if (!isCategoryEditorOpened){
+            // used in UI glitch
+            setTimeout(() => {
+                setEditorCategoryId('');
+                setEditorCategoryName('');
+            }, 500);
+        }
+    }, [isCategoryEditorOpened]);
 
-    const onCategoryEditorCommit = () => {
+    const onCategoryEditorCommit = (category: Category, isNew: boolean) => {
         if (editorCategoryName === '')
             return;
 
-        if (!isCategoryEditorInUpdateMode) {
-            let category = new Category();
-            category.categoryName = editorCategoryName;
-
+        if (isNew) {
             CategoryRepository.create(category)
                 .then(() => {
-                    resetCategoryEditorForms();
-                    setCategoryEditorOpened(false);
+                    setCategoryScreenOpened(false);
                 }).catch((error) => {
                     console.log(error);
                 })
         }
-    }
-
-    const SpecificationListItems = (props: SpecificationListItemsPropsType) => {
-        return (
-            <React.Fragment>{ 
-                editorSpecifications.map((specification: [string, string]) => {
-                    return (
-                            <ListItem
-                                button
-                                onClick={() => props.onItemSelected(specification)}
-                                key={specification[0]}>
-                                <ListItemContent 
-                                    title={specification[1]}
-                                    summary={specification[0]}/>
-                            </ListItem>
-                        )
-                    })
-            }</React.Fragment>
-        );
     }
 
     return (
@@ -266,10 +228,12 @@ export const AssetComponent = (props: AssetComponentPropsType) => {
             <Hidden xsDown>
                 <div className={classes.wrapper}>
                     <DataGrid
+                        paginationMode="server"
                         columns={columns}
                         rows={assets}
-                        getRowId={(r) => r.assetId}
                         pageSize={15}
+                        getRowId={(r) => r.assetId}
+                        onRowClick={(params: GridRowParams, e: any) => onAssetSelected(params.row as Asset)}
                         hideFooterPagination/>
                 </div>
             </Hidden>
@@ -288,154 +252,57 @@ export const AssetComponent = (props: AssetComponentPropsType) => {
             </Hidden>
             
             {/* Category Screen */}
-            <Dialog
-                fullScreen={fullscreen}
-                fullWidth={true}
-                maxWidth="sm"
-                open={isCategoryScreenOpened}
-                onClose={() => setCategoryScreenOpened(false) }>
-                <DialogTitle>{ t("categories") }</DialogTitle>
-                <DialogContent dividers={true}>
-                    <CategoryComponent categories={categories} onItemSelect={onCategoryItemSelected}/>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={() => setCategoryEditorOpened(true)}>{ t("add") }</Button>
-                    <div style={{flex: '1 0 0'}}></div>
-                </DialogActions>
-            </Dialog>
+            <CategoryComponent
+                isOpen={isCategoryScreenOpened}
+                categories={categories}
+                onDismiss={() => setCategoryScreenOpened(false)}
+                onAddItem={() => setCategoryEditorOpened(true)}
+                onSelectItem={onCategoryItemSelected}/>
 
             {/* Category Editor Screen */}
-            <Dialog
-                fullScreen={fullscreen}
-                fullWidth={true}
-                maxWidth="xs"
-                open={isCategoryEditorOpened}
-                onClose={() => resetCategoryEditorForms() }>
-                <DialogTitle>{ t(isCategoryEditorInUpdateMode ? "category_update" : "category_create") }</DialogTitle>
-                <DialogContent dividers={true}>
-                    <Container disableGutters>
-                        <TextField
-                            autoFocus
-                            id="editor-category-name"
-                            type="text"
-                            label={ t("category_name") }
-                            value={editorCategoryName}
-                            onChange={onCategoryEditorNameChanged}
-                            variant="outlined"
-                            size="small"
-                            className={clsx(classes.textField, classes.editor)}/>
-                    </Container>
-                </DialogContent>
-                <DialogActions>
-                    <Button color="primary" onClick={() => resetCategoryEditorForms()}>{ t("cancel") }</Button>
-                    <Button color="primary" onClick={() => onCategoryEditorCommit()}>{ t("save") }</Button>
-                </DialogActions>
-            </Dialog>
+            <CategoryEditorComponent
+                editorOpened={isCategoryEditorOpened}
+                onCancel={() => setCategoryEditorOpened(false)}
+                onSubmit={onCategoryEditorCommit}
+                categoryId={editorCategoryId}
+                categoryName={editorCategoryName}
+                onCategoryNameChanged={setEditorCategoryName}/>
 
             {/* Asset Editor Screen */}
-            <Dialog
-                fullScreen={fullscreen}
-                fullWidth={true}
-                maxWidth="xs"
-                open={isEditorOpened}
-                onClose={() => setEditorOpened(false) }>
-
-                <DialogTitle>{ t("asset_create") }</DialogTitle>
-                <DialogContent dividers={true}>
-                    <Container disableGutters>
-
-                        <TextField
-                            autoFocus
-                            id="editor-asset-name"
-                            type="text"
-                            label={ t("asset_name") }
-                            value={editorAssetName}
-                            variant="outlined"
-                            size="small"
-                            className={clsx(classes.textField, classes.editor)}/>
-
-                        <FormControl component="fieldset" className={classes.editor}>
-                            <FormLabel component="legend">{ t("status") }</FormLabel>
-                            <RadioGroup aria-label={ t("status") } name="editor-status" value={editorStatus} onChange={onEditorStatusChanged}>
-                                <FormControlLabel value={Status.OPERATIONAL} control={<Radio/>} label={ t("status_operational") } />
-                                <FormControlLabel value={Status.IDLE} control={<Radio/>} label={ t("status_idle") }/>
-                                <FormControlLabel value={Status.UNDER_MAINTENANCE} control={<Radio/>} label={ t("status_under_maintenance") } />
-                                <FormControlLabel value={Status.RETIRED} control={<Radio/>} label={ t("status_retired") } />
-                            </RadioGroup>
-                        </FormControl>
-
-                        <TextField
-                            select
-                            id="editor-category"
-                            label={ t("category") }
-                            variant="outlined"
-                            size="small"
-                            value={editorCategory?.categoryName}
-                            defaultValue={categories && categories[0]}
-                            onChange={onEditorCategoryChanged}
-                            className={clsx(classes.textField, classes.editor)}>
-                            {   categories.map((category: Category, index: number) => {
-                                    return <MenuItem key={category.categoryId} value={index}>{category.categoryName}</MenuItem>
-                                })
-                            }
-                        </TextField>
-
-                        <List>
-                            <SpecificationListItems onItemSelected={onSpecificationItemSelected}/>
-                            <ListItem
-                                button
-                                onClick={() => setSpecsEditorOpened(true)}>
-                                <ListItemIcon><PlusIcon/></ListItemIcon>
-                                <ListItemContent title={ t("add") }></ListItemContent>
-                            </ListItem>
-                        </List>
-                    </Container>
-                </DialogContent>
-
-                <DialogActions>
-                    <Button color="primary" onClick={() => resetEditorForms() }>{ t("cancel") }</Button>
-                    <Button color="primary" onClick={() => setEditorOpened(false) }>{ t("save") }</Button>
-                </DialogActions>
-
-            </Dialog>
+            <AssetEditorComponent
+                isOpen={isEditorOpened}
+                onCancel={() => setEditorOpened(false)}
+                onSubmit={() => onCommitAssetEditor()}
+                onViewQrCode={() => setQrCodeView(true)}
+                onAddSpecification={() => setSpecificationEditorOpened(true)}
+                onSelectSpecification={onSpecificationItemSelected}
+                categories={categories}
+                assetId={editorAssetId}
+                assetName={editorAssetName}
+                assetStatus={editorStatus}
+                category={editorCategory}
+                specifications={new Map(Object.entries(editorSpecifications))}
+                onNameChanged={setEditorAssetName}
+                onStatusChanged={setEditorStatus}
+                onCategoryChanged={setEditorCategory}
+                onSpecificationsChanged={setEditorSpecifications}/>
 
             {/* Specification Editor Screen */}
-            <Dialog
-                fullWidth={true}
-                maxWidth="xs"
-                open={isSpecsEditorOpened}
-                onClose={() => resetSpecsEditorForms()}>
-                <DialogTitle>{ t( isSpecsEditorInUpdateMode ? "specification_update" : "specification_create") }</DialogTitle>
+            <SpecificationEditorComponent 
+                isOpen={isSpecificationEditorOpened} 
+                onSubmit={onSpecificationEditorCommit}
+                onCancel={() => setSpecificationEditorOpened(false)}
+                specificationKey={specificationKey} 
+                specificationValue={specificationValue}
+                onSpecificationKeyChanged={setSpecificationKey}
+                onSpecificationValueChanged={setSpecificationValue}/>
 
-                <DialogContent dividers={true}>
-                    <Container disableGutters>
-                        <TextField
-                            autoFocus
-                            id="editor-specification-key"
-                            type="text"
-                            label={ t("specification_key") }
-                            value={editorSpecsKey}
-                            variant="outlined"
-                            size="small"
-                            onChange={onSpecificationKeyChanged}
-                            className={clsx(classes.textField, classes.editor)}/>
-                        <TextField
-                            id="editor-specification-value"
-                            type="text"
-                            label={ t("specification_value") }
-                            value={editorSpecsValue}
-                            variant="outlined"
-                            size="small"
-                            onChange={onSpecificationValueChanged}
-                            className={clsx(classes.textField, classes.editor)}/>
-                    </Container>
-                </DialogContent>
-
-                <DialogActions>
-                    <Button color="primary" onClick={() => resetSpecsEditorForms()}>{ t("cancel") }</Button>
-                    <Button color="primary" onClick={() => onSpecificationEditorCommit()}>{ t("save") }</Button>
-                </DialogActions>
-            </Dialog>
+            <QrCodeViewComponent
+                assetId={editorAssetId}
+                isOpened={isQrCodeView}
+                onClose={() => setQrCodeView(false)}/>
         </Box>
     )
 }
+
+export default AssetComponent

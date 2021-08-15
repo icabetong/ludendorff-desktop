@@ -1,19 +1,36 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { RouteComponentProps } from "react-router";
 import { withRouter } from "react-router-dom";
 import Button from "@material-ui/core/Button";
 import Grid from "@material-ui/core/Grid";
 import Container from "@material-ui/core/Container";
 import Paper from "@material-ui/core/Paper";
+import TextField from "@material-ui/core/TextField";
 import Typography from "@material-ui/core/Typography";
+import { useMediaQuery, useTheme } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 
 import firebase from "firebase/app";
 import { auth } from "../../index";
 
-import { TextInput } from '../../components/TextInput'
-
+const useStyles = makeStyles(() => ({
+    root: {
+        minHeight: '100vh',
+    },
+    containerPaper: {
+        padding: '2em',
+    },
+    container: {
+        padding: '1em 0em',
+    }
+}));
 const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) => {
+    const classes = useStyles();
+    const theme = useTheme();
+    const { t } = useTranslation();
+    const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
+
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
@@ -43,19 +60,6 @@ const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) 
         setError(undefined);
         setPassword(event.target.value)
     }
-
-    const useStyles = makeStyles((theme) => ({
-        root: {
-            minHeight: '100vh',
-        },
-        containerPaper: {
-            padding: '2em',
-        },
-        container: {
-            padding: '1em 0em',
-        }
-    }));
-    const classes = useStyles();
     
     return (
         <Container>
@@ -70,8 +74,8 @@ const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) 
                     <Grid xs={12} item>
                         <Paper className={classes.containerPaper}>
                             <div className={classes.container}>
-                                <Typography variant="h5">Hello.</Typography>
-                                <Typography variant="h5">Welcome Back.</Typography>
+                                <Typography variant="h5">{ t("hello") }</Typography>
+                                <Typography variant="h5">{ t("welcome_back") }</Typography>
                             </div>
                             <div className={classes.container}>
                                 {
@@ -81,23 +85,27 @@ const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) 
                                     </Typography>
                                 }
                                 <br/>
-                                <TextInput
+                                <TextField
                                     style={{ marginBottom: '1em', marginTop: '1em' }}
-                                    id="_inputEmail"
+                                    id="authentication-email"
                                     type="text"
                                     value={email}
-                                    label="Email"
+                                    label={ t("email") }
                                     error={!!error}
                                     disabled={isAuthenticating}
+                                    variant="outlined"
+                                    size={isMobile ? 'medium' : 'small'}
                                     onChange={onEmailInputChanged}/>
                                 <br/>
-                                <TextInput
-                                    id="_inputPassword"
+                                <TextField
+                                    id="authentication-password"
                                     type="password"
                                     value={password}
-                                    label="Password"
+                                    label={ t("password") }
                                     error={!!error}
                                     disabled={isAuthenticating}
+                                    variant="outlined"
+                                    size={isMobile ? 'medium' : 'small'}
                                     onChange={onPasswordInputChanged}/>
                             </div>
                             <div className={classes.container}>
@@ -105,6 +113,7 @@ const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) 
                                     type="submit" 
                                     variant="contained" 
                                     color="primary"
+                                    aria-label={ t("sign_in") }
                                     fullWidth={true}
                                     disabled={isAuthenticating}>
                                     { isAuthenticating ? "Authenticating" : "Sign in" }
