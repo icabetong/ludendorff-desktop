@@ -7,8 +7,17 @@ const isDev = require('electron-is-dev');
 
 let mainWindow;
 
+const windowWidth = 1024;
+const windowHeight = 600;
+const windowSettings = {
+    width: windowWidth,
+    height: windowHeight,
+    minHeight: windowWidth,
+    minWidth: windowHeight
+}
+
 function createWindow() {
-    mainWindow = new BrowserWindow({width: 1024, height: 768, minHeight: 600, minWidth: 800});
+    mainWindow = new BrowserWindow(windowSettings);
     mainWindow.removeMenu();
 
     const appUrl = isDev ? 'http://localhost:3000' 
