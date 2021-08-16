@@ -12,8 +12,8 @@ const windowHeight = 600;
 const windowSettings = {
     width: windowWidth,
     height: windowHeight,
-    minHeight: windowWidth,
-    minWidth: windowHeight
+    minWidth: windowWidth,
+    minHeight: windowHeight
 }
 
 function createWindow() {
