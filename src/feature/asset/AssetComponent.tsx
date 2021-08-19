@@ -1,6 +1,5 @@
 import { useEffect, useState, lazy } from "react";
 import { useTranslation } from "react-i18next";
-import clsx from "clsx";
 import Box from "@material-ui/core/Box";
 import Hidden from "@material-ui/core/Hidden";
 import List from "@material-ui/core/List";
@@ -8,14 +7,18 @@ import ListItem from "@material-ui/core/ListItem";
 import MenuItem from "@material-ui/core/MenuItem";
 import { makeStyles } from "@material-ui/core/styles";
 import { DataGrid, GridRowParams, GridValueGetterParams } from "@material-ui/data-grid";
-import { DocumentSnapshot, DocumentData } from "@firebase/firestore-types";
+import { useSnackbar } from "notistack";
 
 import PlusIcon from "@heroicons/react/outline/PlusIcon";
 
+import GridLinearProgress from "../../components/GridLinearProgress";
+import PaginationController from "../../components/PaginationController";
 import { ListItemContent } from "../../components/ListItemContent";
 import { ComponentHeader } from "../../components/ComponentHeader";
-import { Asset, AssetRepository, Status } from "./Asset";
+import { Asset, Status } from "./Asset";
 import { Category, CategoryCore, CategoryRepository } from "../category/Category";
+import { usePagination } from "../../shared/pagination";
+import { firestore } from "../../index";
 
 const AssetEditorComponent = lazy(() => import("./AssetEditorComponent"));
 const CategoryComponent = lazy(() => import("../category/CategoryComponent"));
@@ -31,12 +34,7 @@ const useStyles = makeStyles((theme) => ({
     icon: {
         width: '1em',
         height: '1em',
-    },
-    actionButtonIcon: {
         color: theme.palette.primary.contrastText
-    },
-    overflowButtonIcon: {
-        color: theme.palette.text.primary
     },
     overflowButton: {
         marginLeft: '0.6em'
@@ -65,50 +63,54 @@ type AssetComponentPropsType = {
 const AssetComponent = (props: AssetComponentPropsType) => {
     const classes = useStyles();
     const { t } = useTranslation();
+    const { enqueueSnackbar } = useSnackbar();
 
     const columns = [
         { field: Asset.FIELD_ASSET_ID, headerName: t("id"), hide: true },
         { field: Asset.FIELD_ASSET_NAME, headerName: t("name"), flex: 1 },
-        { field: Asset.FIELD_CATEGORY, headerName: t("category"), flex: 0.5, valueGetter: (params: GridValueGetterParams) => params.row.category?.categoryName },
-        { field: Asset.FIELD_DATE_CREATED, headerName: t("date_created"), flex: 0.5, valueGetter: (params: GridValueGetterParams) => params.row.formatDate() },
-        { field: Asset.FIELD_STATUS, headerName: t("status"), flex: 0.35, valueGetter: (params: GridValueGetterParams) => t(params.row.getLocalizedStatus()) }
+        { 
+            field: Asset.FIELD_CATEGORY, headerName: 
+            t("category"), 
+            flex: 0.5,
+            valueGetter: (params: GridValueGetterParams) => t(Asset.from(params.row).getLocalizedCategory())},
+        { 
+            field: Asset.FIELD_DATE_CREATED, 
+            headerName: t("date_created"), 
+            flex: 0.5, 
+            valueGetter: (params: GridValueGetterParams) => t(Asset.from(params.row).formatDate()) },
+        { 
+            field: Asset.FIELD_STATUS, 
+            headerName: t("status"), 
+            flex: 0.35, 
+            valueGetter: (params: GridValueGetterParams) => t(Asset.from(params.row).getLocalizedStatus()) }
     ];
 
-    const [assets, setAssets] = useState<Asset[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [pageNumber, setPageNumber] = useState<number>(0);
-    const [documentHistory, setDocumentHistory] = useState<DocumentSnapshot<DocumentData>[]>([]);
+    const {
+        items: assets,
+        isLoading: isAssetsLoading,
+        isStart: atAssetStart,
+        isEnd: atAssetEnd,
+        getPrev: getPreviousAssets,
+        getNext: getNextAssets,
+    } = usePagination<Asset>(
+        firestore
+            .collection(Asset.COLLECTION)
+            .orderBy(Asset.FIELD_ASSET_NAME, "asc"), { limit: 15 }
+    )
 
-    useEffect(() => {
-        AssetRepository.fetch(documentHistory[documentHistory.length - 1])
-            .then((data: [Asset[], DocumentSnapshot<DocumentData>]) => {
-                setAssets(data[0]);
+    const {
+        items: categories,
+        isLoading: isCategoriesLoading,
+        isStart: atCategoryStart,
+        isEnd: atCategoryEnd,
+        getPrev: getPreviousCategories,
+        getNext: getNextCategories
+    } = usePagination<Category>(
+        firestore
+            .collection(Category.COLLECTION)
+            .orderBy(Category.FIELD_CATEGORY_NAME, "asc"), { limit: 15 }   
+    )
 
-                let newHistory = documentHistory;
-                newHistory.push(data[1]);
-                setDocumentHistory(newHistory);
-            });
-        CategoryRepository.fetch()
-            .then((data: Category[]) => {
-                setCategories(data);
-            })
-    }, [pageNumber]);
-
-    const onIncrementPageNumber = () => {
-        setPageNumber(pageNumber + 1);
-    }
-
-    const onDecrementPageNumber = () => {
-        let newHistory = documentHistory;
-        // we need to pop it two times
-        // because the reference we need 
-        // is two times behind.
-        newHistory.pop();
-        newHistory.pop();
-
-        setDocumentHistory(newHistory);
-        setPageNumber(pageNumber - 1);
-    }
     const [isEditorOpened, setEditorOpened] = useState<boolean>(false);
     const [editorAssetId, setEditorAssetId] = useState<string>('');
     const [editorAssetName, setEditorAssetName] = useState<string>('');
@@ -186,9 +188,14 @@ const AssetComponent = (props: AssetComponentPropsType) => {
         setCategoryEditorOpened(true);
     }
 
+    const onCategoryItemRemoved = (category: Category) => {
+
+    }
+
     const [isCategoryEditorOpened, setCategoryEditorOpened] = useState<boolean>(false);
     const [editorCategoryId, setEditorCategoryId] = useState<string>('');
     const [editorCategoryName, setEditorCategoryName] = useState<string>('');
+    const [editorCategoryCount, setEditorCategoryCount] = useState<number>(0);
 
     useEffect(() => {
         if (!isCategoryEditorOpened){
@@ -196,6 +203,7 @@ const AssetComponent = (props: AssetComponentPropsType) => {
             setTimeout(() => {
                 setEditorCategoryId('');
                 setEditorCategoryName('');
+                setEditorCategoryCount(0);
             }, 500);
         }
     }, [isCategoryEditorOpened]);
@@ -207,7 +215,18 @@ const AssetComponent = (props: AssetComponentPropsType) => {
         if (isNew) {
             CategoryRepository.create(category)
                 .then(() => {
-                    setCategoryScreenOpened(false);
+                    setCategoryEditorOpened(false);
+
+                    enqueueSnackbar(t("feedback_category_created"));
+                }).catch((error) => {
+                    console.log(error);
+                })
+        } else {
+            CategoryRepository.update(category)
+                .then(() => {
+                    setCategoryEditorOpened(false);
+
+                    enqueueSnackbar(t("feedback_category_updated"));
                 }).catch((error) => {
                     console.log(error);
                 })
@@ -220,7 +239,7 @@ const AssetComponent = (props: AssetComponentPropsType) => {
                 title={ t("assets") } 
                 onDrawerToggle={props.onDrawerToggle} 
                 buttonText={ t("add") }
-                buttonIcon={<PlusIcon className={clsx(classes.icon, classes.actionButtonIcon)}/>}
+                buttonIcon={<PlusIcon className={classes.icon}/>}
                 buttonOnClick={() => setEditorOpened(true) }
                 menuItems={[
                     <MenuItem key={0} onClick={() => setCategoryScreenOpened(true)}>{ t("categories") }</MenuItem>
@@ -228,10 +247,12 @@ const AssetComponent = (props: AssetComponentPropsType) => {
             <Hidden xsDown>
                 <div className={classes.wrapper}>
                     <DataGrid
-                        paginationMode="server"
-                        columns={columns}
+                        components={{LoadingOverlay: GridLinearProgress}}
                         rows={assets}
+                        columns={columns}
                         pageSize={15}
+                        loading={isAssetsLoading}
+                        paginationMode="server"
                         getRowId={(r) => r.assetId}
                         onRowClick={(params: GridRowParams, e: any) => onAssetSelected(params.row as Asset)}
                         hideFooterPagination/>
@@ -247,17 +268,29 @@ const AssetComponent = (props: AssetComponentPropsType) => {
                         )
                     })    
                 }</List>
-                <button onClick={onDecrementPageNumber}>Previous</button>
-                <button onClick={onIncrementPageNumber}>Next</button>
             </Hidden>
+            {
+                !atAssetStart && !atAssetEnd &&
+                <PaginationController
+                    hasPrevious={atAssetStart}
+                    hasNext={atAssetEnd}
+                    getPrevious={getPreviousAssets}
+                    getNext={getNextAssets}/>
+            }
             
             {/* Category Screen */}
             <CategoryComponent
                 isOpen={isCategoryScreenOpened}
+                isLoading={isCategoriesLoading}
+                hasPrevious={atCategoryStart}
+                hasNext={atCategoryEnd}
                 categories={categories}
+                onPreviousBatch={getPreviousCategories}
+                onNextBatch={getNextCategories}
                 onDismiss={() => setCategoryScreenOpened(false)}
                 onAddItem={() => setCategoryEditorOpened(true)}
-                onSelectItem={onCategoryItemSelected}/>
+                onSelectItem={onCategoryItemSelected}
+                onDeleteItem={onCategoryItemRemoved}/>
 
             {/* Category Editor Screen */}
             <CategoryEditorComponent
@@ -266,6 +299,7 @@ const AssetComponent = (props: AssetComponentPropsType) => {
                 onSubmit={onCategoryEditorCommit}
                 categoryId={editorCategoryId}
                 categoryName={editorCategoryName}
+                categoryCount={editorCategoryCount}
                 onCategoryNameChanged={setEditorCategoryName}/>
 
             {/* Asset Editor Screen */}

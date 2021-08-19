@@ -4,6 +4,7 @@ import { withRouter } from "react-router-dom";
 import Drawer from "@material-ui/core/Drawer";
 import Hidden from "@material-ui/core/Hidden";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
+import { SnackbarProvider } from "notistack";
 
 import { AuthContext, AuthFetched, AuthPending } from "../auth/AuthProvider";
 
@@ -50,7 +51,7 @@ const useStyles = makeStyles((theme) => ({
         height: '100vh'
     },
     drawer: {
-        [theme.breakpoints.up('sm')]: {
+        [theme.breakpoints.up('md')]: {
             width: drawerWidth,
             flexShrink: 0,
         }
@@ -109,7 +110,7 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
     return (
         <div className={classes.root}>
             <nav className={classes.drawer}>
-                <Hidden smUp implementation="css">
+                <Hidden mdUp implementation="css">
                     <Drawer 
                         variant="temporary"
                         anchor={theme.direction === "rtl" ? 'right' : 'left' }
@@ -124,7 +125,7 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
                         {drawerItems}
                     </Drawer>
                 </Hidden>
-                <Hidden xsDown implementation="css">
+                <Hidden smDown implementation="css">
                     <Drawer 
                         className={classes.drawer}
                         variant="permanent"
@@ -157,9 +158,17 @@ const RootComponent = () => {
     } else if (authState instanceof AuthFetched) {
         if (authState.user != null) {
             return (
-                <RootContainerComponent 
-                    onNavigate={onNavigate} 
-                    currentDestination={destination}/>
+                <SnackbarProvider 
+                    maxSnack={3}
+                    autoHideDuration={3000}
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right'
+                    }}>
+                    <RootContainerComponent 
+                        onNavigate={onNavigate} 
+                        currentDestination={destination}/>
+                </SnackbarProvider>
             )
         } else return <Redirect to="/auth"/>
     } else return <Redirect to="/error"/>

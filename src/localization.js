@@ -13,6 +13,7 @@ const resources = {
             users: "Users",
             assignments: "Assignments",
             categories: "Categories",
+            departments: "Departments",
             settings: "Settings",
             signout: "Sign-out",
             continue: "Continue",
@@ -20,7 +21,12 @@ const resources = {
             add: "Add",
             save: "Save",
             select: "Select",
+            previous: "Previous",
+            next: "Next",
             close: "Close",
+            delete: "Delete",
+            show_menu: "Show menu",
+            show_drawer: "Show drawer",
             unknown: "Unknown",
             email: "Email",
             password: "Password",
@@ -42,6 +48,7 @@ const resources = {
             status_under_maintenance: "Under Maintenance",
             status_retired: "Retired",
             asset_name: "Asset Name",
+            count: "Count: {{count}}",
             asset_create: "Create Asset",
             asset_update: "Edit Asset",
             category_create: "Create Category",
@@ -56,8 +63,8 @@ const resources = {
             confirm_signout_message: "Are you sure you want to end your session? You will need to enter your credentials again next time.",
             empty_category: "No Categories Added",
             empty_category_summary: "There are no categories available that can be used to organize the assets.",
-            show_menu: "Show menu",
-            show_drawer: "Show drawer"
+            feedback_category_created: "Category created successfully",
+            feedback_category_updated: "Category updated successfully",
         }
     }
 }
