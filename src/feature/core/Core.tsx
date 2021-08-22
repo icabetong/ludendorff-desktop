@@ -10,47 +10,63 @@ import history from "../navigation/History";
 import { GenericErrorStateComponent } from "../state/ErrorStates";
 
 const secondaryColors = {
-    main: '#ff5555',
-    dark: '#c5162c'
+    main: '#ff79c6',
+    dark: '#c94695',
+    light: '#ffacf9'
 }
 const errorColors = {
-    main: '#ffb86c'
-}
-const fonts = [
-    'Inter',
-    'apple-system',
-    'Segoe UI',
-    'Roboto',
-    'Oxygen',
-    'Ubuntu',
-    'Cantarell',
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    'sans-serif'
-].join(',')
-const typographyOverrides = {
-    h6: {
-        fontWeight: 600,
-        fontFamily: 'Inter'
-    },
-    h5: {
-        fontWeight: 700,
-        fontSize: '2em'
-    },
-    body2: {
-        fontWeight: 600
-    },
-    subtitle1: {
-        fontSize: '1em'
-    },
-    subtitle2: {
-        fontSize: '1em',
-        fontWeight: 500
-    }
+    main: '#ff5555',
+    dark: '#c5162c',
+    light: '#ff8982'
 }
 
+const baseTheme = createTheme({
+    typography: {
+        fontFamily: [
+            'Inter',
+            'apple-system',
+            'Segoe UI',
+            'Roboto',
+            'Oxygen',
+            'Ubuntu',
+            'Cantarell',
+            'Fira Sans',
+            'Droid Sans',
+            'Helvetica Neue',
+            'sans-serif'
+        ].join(',')
+    },
+    props: {
+        MuiTextField: {
+            variant: "outlined",
+            size: "small"
+        }
+    },
+    overrides: {
+        MuiTypography: {
+            h6: {
+                fontWeight: 600,
+            },
+            h5: {
+                fontWeight: 700,
+                fontSize: '2em'
+            },
+            body2: {
+                fontWeight: 600
+            },
+            subtitle1: {
+                fontSize: '1em'
+            },
+            subtitle2: {
+                fontSize: '1em',
+                fontWeight: 500
+            },
+        }
+    }
+})
+
 const lightTheme = createTheme({
+    ...baseTheme,
     palette: {
         type: 'light',
         primary: {
@@ -68,14 +84,9 @@ const lightTheme = createTheme({
             secondary: '#44475a'
         }
     },
-    typography: {
-        fontFamily: fonts
-    },
-    overrides: {
-        MuiTypography: typographyOverrides
-    }
 })
 const darkTheme = createTheme({
+    ...baseTheme,
     palette: {
         type: 'dark',
         primary: {
@@ -92,12 +103,6 @@ const darkTheme = createTheme({
             primary: '#f8f8f2'
         },
         divider: '#6f7287'
-    },
-    typography: {
-        fontFamily: fonts
-    },
-    overrides: {
-        MuiTypography: typographyOverrides
     }
 })
 
@@ -113,6 +118,7 @@ export const ThemeContext = React.createContext<ThemeContextType>({
 
 export const CoreComponent = () => {
     const [theme, setTheme] = useLocalStorage("preference:theme", 'dark');
+    console.log(darkTheme);
     
     return (
         <div>
@@ -124,7 +130,7 @@ export const CoreComponent = () => {
                             <Switch>
                                 <Route path="/" component={RootComponent} exact/>
                                 <Route path="/auth" component={AuthComponent}/>
-                                <Route path="/error" component={GenericErrorStateComponent}/>
+                                <Route path="*" component={GenericErrorStateComponent} exact/>
                             </Switch>
                         </Router>
                 </ThemeProvider>

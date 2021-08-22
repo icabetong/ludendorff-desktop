@@ -48,8 +48,8 @@ type NavigationComponentPropsType =  {
 
 const useStyles = makeStyles((theme) => ({
     icon: {
-        width: '1.4em',
-        height: '1.4em',
+        width: '1.6em',
+        height: '1.6em',
         color: theme.palette.text.primary
     }
 }));
@@ -96,7 +96,7 @@ export const NavigationComponent = (props: NavigationComponentPropsType) => {
                     destination={props.currentDestination}
                     onNavigate={props.onNavigate}/>
                 <NavigationListItem
-                    itemKey={0}
+                    itemKey={1}
                     navigation={{icon: <LogoutIcon className={classes.icon}/>, title: t("signout")}}
                     isActive={false}
                     action={() => confirmSignOut()}/>

@@ -47,7 +47,8 @@ const useStyles = makeStyles((theme) => ({
         height: '1em'
     },
 }));
-export const ComponentHeader = (props: ComponentHeaderPropsType) => {
+
+const ComponentHeader = (props: ComponentHeaderPropsType) => {
     const { t } = useTranslation();
     const classes = useStyles();
 
@@ -69,12 +70,12 @@ export const ComponentHeader = (props: ComponentHeaderPropsType) => {
                         <MenuIcon className={classes.icon}/>
                 </IconButton>
                 <Hidden xsDown>
-                    <Typography variant="h5" className={classes.title} noWrap>
+                    <Typography variant="h5" className={classes.title}>
                         {props.title}
                     </Typography>
                 </Hidden>
                 <Hidden smUp>
-                    <Typography variant="h6" noWrap>
+                    <Typography variant="h6">
                         {props.title}
                     </Typography>
                 </Hidden>
@@ -118,3 +119,5 @@ export const ComponentHeader = (props: ComponentHeaderPropsType) => {
         </AppBar>
     )
 }
+
+export default ComponentHeader;

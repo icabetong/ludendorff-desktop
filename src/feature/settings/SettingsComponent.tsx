@@ -9,8 +9,8 @@ import { makeStyles } from "@material-ui/core/styles";
 
 import ColorSwatchIcon from "@heroicons/react/outline/ColorSwatchIcon";
 
-import { ListItemContent } from "../../components/ListItemContent";
-import { ComponentHeader } from "../../components/ComponentHeader";
+import ListItemContent from "../../components/ListItemContent";
+import ComponentHeader from "../../components/ComponentHeader";
 import { ThemeContext } from "../core/Core";
 
 const useStyles = makeStyles((theme) => ({

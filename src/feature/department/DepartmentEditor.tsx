@@ -1,3 +1,4 @@
+import React from "react";
 import { useTranslation } from "react-i18next";
 import Button from "@material-ui/core/Button";
 import Container from "@material-ui/core/Container";
@@ -8,7 +9,7 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import TextField from "@material-ui/core/TextField";
 import { makeStyles } from "@material-ui/core/styles";
 
-import { Category } from "./Category";
+import { Department } from "./Department";
 
 const useStyles = makeStyles(() => ({
     textField: {
@@ -17,47 +18,48 @@ const useStyles = makeStyles(() => ({
     }
 }));
 
-type CategoryEditorComponentPropsType = {
-    editorOpened: boolean,
-    onSubmit: (category: Category, isNew: boolean) => void,
+type DepartmentEditorProps = {
+    isOpen: boolean,
+    department?: Department,
+    onSubmit: (department: Department, isNew: boolean) => void,
     onCancel: () => void,
-    categoryId: string,
-    categoryName: string,
-    categoryCount: number,
-    onCategoryNameChanged: (name: string) => void
+    onDepartmentChanged: (department: Department) => void 
 }
 
-const CategoryEditorComponent = (props: CategoryEditorComponentPropsType) => {
+const DepartmentEditor = (props: DepartmentEditorProps) => {
     const { t } = useTranslation();
     const classes = useStyles();
-    const isInUpdateMode = Boolean(props.categoryId);
 
     const onPreSubmit = () => {
-        let category = new Category(isInUpdateMode ? props.categoryId : undefined);
-        category.categoryName = props.categoryName;
-        category.count = props.categoryCount;
+        
+    }
 
-        props.onSubmit(category, !isInUpdateMode);
+    const onNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+        let department = props.department;
+        if (department === undefined)
+            department = new Department();
+        else department = new Department(props.department?.departmentId);
+
+        department.departmentId = event.target.value;
+        props.onDepartmentChanged(department);
     }
 
     return (
         <Dialog
             fullWidth={true}
             maxWidth="xs"
-            open={props.editorOpened}
+            open={props.isOpen}
             onClose={() => props.onCancel() }>
-            <DialogTitle>{ t(isInUpdateMode ? "category_update" : "category_create") }</DialogTitle>
+            <DialogTitle>{ t("department_details") }</DialogTitle>
             <DialogContent dividers={true}>
                 <Container disableGutters>
                     <TextField
                         autoFocus
-                        id="editor-category-name"
+                        id="editor-department-name"
                         type="text"
-                        label={ t("category_name") }
-                        value={props.categoryName}
-                        onChange={(event: React.ChangeEvent<HTMLInputElement>) => props.onCategoryNameChanged(event.target.value)}
-                        variant="outlined"
-                        size="small"
+                        label={ t("department_name") }
+                        value={props.department?.name}
+                        onChange={onNameChanged}
                         className={classes.textField}/>
                 </Container>
             </DialogContent>
@@ -69,4 +71,4 @@ const CategoryEditorComponent = (props: CategoryEditorComponentPropsType) => {
     )
 }
 
-export default CategoryEditorComponent
+export default DepartmentEditor;

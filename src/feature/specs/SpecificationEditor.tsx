@@ -7,6 +7,7 @@ import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import TextField from "@material-ui/core/TextField";
 import { makeStyles } from "@material-ui/core/styles";
+import React from "react";
 
 const useStyles = makeStyles(() => ({
     textField: {
@@ -15,24 +16,32 @@ const useStyles = makeStyles(() => ({
     }
 }));
 
-type SpecificationEditorComponentPropsType = {
+type SpecificationEditorProps = {
     isOpen: boolean,
-    onSubmit: (specification: [string, string], isUpdate: boolean) => void,
+    specification: [string, string],
+    onSubmit: (spec: [string, string], exists: boolean) => void,
     onCancel: () => void,
-    specificationKey: string,
-    specificationValue: string
-    onSpecificationKeyChanged: (key: string) => void,
-    onSpecificationValueChanged: (value: string) => void,
+    onSpecificationChanged: (spec: [string, string]) => void
 }
 
-const SpecificationEditorComponent = (props: SpecificationEditorComponentPropsType) => {
+const SpecificationEditor = (props: SpecificationEditorProps) => {
     const { t } = useTranslation();
     const classes = useStyles();
-    const isInUpdateMode = Boolean(props.specificationKey);
+    const isUpdate = props.specification[0] !== '';
 
     const onPreSubmit = () => {
-        let specification: [string, string] = [props.specificationKey, props.specificationValue];
-        props.onSubmit(specification, isInUpdateMode);
+        let specification: [string, string] = props.specification;
+        props.onSubmit(specification, isUpdate);
+    }
+
+    const onKeyChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+        let specification: [string, string] = [event.target.value, props.specification[1]];
+        props.onSpecificationChanged(specification);
+    }
+
+    const onValueChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+        let specification: [string, string] = [props.specification[0], event.target.value];
+        props.onSpecificationChanged(specification);
     }
 
     return (
@@ -41,12 +50,7 @@ const SpecificationEditorComponent = (props: SpecificationEditorComponentPropsTy
             maxWidth="xs"
             open={props.isOpen}
             onClose={() => props.onCancel()}>
-            <DialogTitle>
-                { t(isInUpdateMode 
-                    ? "specification_update" 
-                    : "specification_create") 
-                }
-            </DialogTitle>
+            <DialogTitle>{ t("specification_details") }</DialogTitle>
             <DialogContent dividers={true}>
                 <Container disableGutters>
                     <TextField
@@ -54,19 +58,15 @@ const SpecificationEditorComponent = (props: SpecificationEditorComponentPropsTy
                         id="editor-specification-key"
                         type="text"
                         label={ t("specification_key") }
-                        value={props.specificationKey}
-                        variant="outlined"
-                        size="small"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.onSpecificationKeyChanged(e.target.value)}
+                        value={props.specification[0]}
+                        onChange={onKeyChanged}
                         className={classes.textField}/>
                     <TextField
                         id="editor-specification-value"
                         type="text"
                         label={ t("specification_value") }
-                        value={props.specificationValue}
-                        variant="outlined"
-                        size="small"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.onSpecificationValueChanged(e.target.value)}
+                        value={props.specification[1]}
+                        onChange={onValueChanged}
                         className={classes.textField}/>
                 </Container>
             </DialogContent>
@@ -79,4 +79,4 @@ const SpecificationEditorComponent = (props: SpecificationEditorComponentPropsTy
     )
 }
 
-export default SpecificationEditorComponent
+export default SpecificationEditor;
