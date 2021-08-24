@@ -4,27 +4,28 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
+import LinearProgress from "@material-ui/core/LinearProgress";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
 import { useTheme } from "@material-ui/core/styles";
 
-import { Category } from "./Category";
-import CategoryList from "./CategoryList";
+import { Department } from "./Department";
+import DepartmentList from "./DepartmentList";
 
-type CategoryPickerProps = {
+type DepartmentPickerProps = {
     isOpen: boolean,
-    categories: Category[],
+    departments: Department[],
     isLoading: boolean,
     hasPrevious: boolean,
     hasNext: boolean,
-    onPreviousBatch: () => void,
-    onNextBatch: () => void,
+    onPrevious: () => void,
+    onNext: () => void,
     onDismiss: () => void,
     onAddItem: () => void,
-    onSelectItem: (category: Category) => void,
-    onDeleteItem: (category: Category) => void,
+    onSelectItem: (department: Department) => void,
+    onDeleteItem: (department: Department) => void,
 }
 
-const CategoryPicker = (props: CategoryPickerProps) => {
+const DepartmentPicker = (props: DepartmentPickerProps) => {
     const { t } = useTranslation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
@@ -35,15 +36,16 @@ const CategoryPicker = (props: CategoryPickerProps) => {
             fullWidth={true}
             maxWidth="xs"
             open={props.isOpen}
-            onClose={() => props.onDismiss() }>
-            <DialogTitle>{ t("category_select") }</DialogTitle>
+            onClose={() => props.onDismiss()}>
+            <DialogTitle>{ t("department_select") }</DialogTitle>
             <DialogContent dividers={true}>
-                <CategoryList 
+                { props.isLoading && <LinearProgress/> }
+                <DepartmentList
+                    departments={props.departments}
                     hasPrevious={props.hasPrevious}
                     hasNext={props.hasNext}
-                    onPrevious={props.onPreviousBatch}
-                    onNext={props.onNextBatch}
-                    categories={props.categories} 
+                    onPrevious={props.onPrevious}
+                    onNext={props.onNext}
                     onItemSelect={props.onSelectItem}
                     onItemRemove={props.onDeleteItem}/>
             </DialogContent>
@@ -53,7 +55,7 @@ const CategoryPicker = (props: CategoryPickerProps) => {
                 <Button color="primary" onClick={() => props.onDismiss()}>{ t("close") }</Button>
             </DialogActions>
         </Dialog>
-    )
+    );
 }
 
-export default CategoryPicker;
+export default DepartmentPicker;

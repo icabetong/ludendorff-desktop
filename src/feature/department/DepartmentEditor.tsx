@@ -6,10 +6,14 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
+import FormControl from "@material-ui/core/FormControl";
+import FormLabel from "@material-ui/core/FormLabel";
+import ListItem from "@material-ui/core/ListItem";
 import TextField from "@material-ui/core/TextField";
+import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
 
-import { Department } from "./Department";
+import { UserCore } from "../user/User";
 
 const useStyles = makeStyles(() => ({
     textField: {
@@ -20,29 +24,17 @@ const useStyles = makeStyles(() => ({
 
 type DepartmentEditorProps = {
     isOpen: boolean,
-    department?: Department,
-    onSubmit: (department: Department, isNew: boolean) => void,
+    name?: string,
+    manager?: UserCore
+    onSubmit: () => void,
     onCancel: () => void,
-    onDepartmentChanged: (department: Department) => void 
+    onManagerSelect: () => void,
+    onNameChanged: (name: string) => void,
 }
 
 const DepartmentEditor = (props: DepartmentEditorProps) => {
     const { t } = useTranslation();
     const classes = useStyles();
-
-    const onPreSubmit = () => {
-        
-    }
-
-    const onNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let department = props.department;
-        if (department === undefined)
-            department = new Department();
-        else department = new Department(props.department?.departmentId);
-
-        department.departmentId = event.target.value;
-        props.onDepartmentChanged(department);
-    }
 
     return (
         <Dialog
@@ -58,14 +50,26 @@ const DepartmentEditor = (props: DepartmentEditorProps) => {
                         id="editor-department-name"
                         type="text"
                         label={ t("department_name") }
-                        value={props.department?.name}
-                        onChange={onNameChanged}
+                        value={props.name === undefined ? '' : props.name}
+                        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                            props.onNameChanged(event.target.value)
+                        }}
                         className={classes.textField}/>
+                    <FormControl component="fieldset" className={classes.textField}>
+                            <FormLabel component="legend">
+                                <Typography variant="body2">{ t("manager") }</Typography>
+                            </FormLabel>
+                            <ListItem button onClick={() => props.onManagerSelect()}>
+                                <Typography variant="body2">
+                                    { props.manager?.name !== undefined ? props.manager?.name : t("not_set")  }
+                                </Typography>
+                            </ListItem>
+                        </FormControl>
                 </Container>
             </DialogContent>
             <DialogActions>
                 <Button color="primary" onClick={() => props.onCancel()}>{ t("cancel") }</Button>
-                <Button color="primary" onClick={() => onPreSubmit()}>{ t("save") }</Button>
+                <Button color="primary" onClick={() => props.onSubmit()}>{ t("save") }</Button>
             </DialogActions>
         </Dialog>
     )

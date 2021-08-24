@@ -9,8 +9,6 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import TextField from "@material-ui/core/TextField";
 import { makeStyles } from "@material-ui/core/styles";
 
-import { Category } from "./Category";
-
 const useStyles = makeStyles(() => ({
     textField: {
         margin: '0.6em 0',
@@ -20,34 +18,17 @@ const useStyles = makeStyles(() => ({
 
 type CategoryEditorComponentPropsType = {
     editorOpened: boolean,
-    onSubmit: (category: Category, isNew: boolean) => void,
+    categoryId: string,
+    categoryName: string,
+    count: number,
+    onSubmit: () => void,
     onCancel: () => void,
-    category?: Category,
-    onCategoryChanged: (category: Category) => void
+    onCategoryNameChanged: (name: string) => void,
 }
 
 const CategoryEditorComponent = (props: CategoryEditorComponentPropsType) => {
     const { t } = useTranslation();
     const classes = useStyles();
-    const isUpdate = props.category !== undefined;
-
-    const onPreSubmit = () => {
-        let category = new Category(isUpdate ? props.category?.categoryId : undefined);
-        category.categoryName = props.category?.categoryName;
-        category.count = props.category?.count !== undefined ? props.category?.count : 0;
-
-        props.onSubmit(category, !isUpdate);
-    }
-
-    const onNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let category = props.category;
-        if (category === undefined) 
-            category = new Category();
-        else category = new Category(props.category?.categoryId);
-
-        category.categoryName = event.target.value;
-        props.onCategoryChanged(category);
-    }
 
     return (
         <Dialog
@@ -63,14 +44,16 @@ const CategoryEditorComponent = (props: CategoryEditorComponentPropsType) => {
                         id="editor-category-name"
                         type="text"
                         label={ t("category_name") }
-                        value={props.category?.categoryName}
-                        onChange={onNameChanged}
+                        value={props.categoryName}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            props.onCategoryNameChanged(e.target.value)
+                        }}
                         className={classes.textField}/>
                 </Container>
             </DialogContent>
             <DialogActions>
                 <Button color="primary" onClick={() => props.onCancel()}>{ t("cancel") }</Button>
-                <Button color="primary" onClick={() => onPreSubmit()}>{ t("save") }</Button>
+                <Button color="primary" onClick={() => props.onSubmit()}>{ t("save") }</Button>
             </DialogActions>
         </Dialog>
     )
