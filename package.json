@@ -1,6 +1,7 @@
 {
   "name": "ludendorff",
   "version": "0.1.0",
+  "author": "Isaiah Collins Abetong <isaiahcollins_02@live.com> (https://github.com/icabetong)",
   "private": true,
   "dependencies": {
     "@firebase/firestore-types": "^2.3.0",
@@ -42,6 +43,32 @@
     "electron-dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-build": "./node_modules/.bin/electron-builder -c.extraMetadata.main=build/starter.js",
     "preelectron-package": "npm run build"
+  },
+  "build": {
+    "appId": "io.capstone.ludendorff",
+    "dmg": {
+      "contents": [
+        {
+          "x": 100,
+          "y": 150
+        },
+        {
+          "x": 240,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "deb",
+        "AppImage"
+      ]
+    },
+    "win": {
+      "target": "squirrel"
+    }
   },
   "eslintConfig": {
     "extends": [
