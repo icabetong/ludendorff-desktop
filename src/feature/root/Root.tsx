@@ -1,4 +1,4 @@
-import { useContext, useState, Suspense, lazy } from "react";
+import { useState, Suspense, lazy } from "react";
 import { Redirect } from "react-router";
 import { withRouter } from "react-router-dom";
 import Drawer from "@material-ui/core/Drawer";
@@ -6,11 +6,10 @@ import Hidden from "@material-ui/core/Hidden";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 import { SnackbarProvider } from "notistack";
 
-import { AuthContext, AuthFetched, AuthPending } from "../auth/AuthProvider";
+import { AuthStatus, useAuthState } from "../auth/AuthProvider";
 
 import { Destination, NavigationComponent } from "../navigation/NavigationComponent";
-import { SettingsComponent } from "../settings/SettingsComponent";
-import { ErrorNotFoundStateComponent } from "../state/ErrorStates";
+import { ErrorNotFoundState } from "../state/ErrorStates";
 import { MainLoadingStateComponent, ContentLoadingStateComponent } from "../state/LoadingStates";
 
 const HomeScreen = lazy(() => import('../home/HomeScreen'));
@@ -18,6 +17,8 @@ const ScanScreen = lazy(() => import('../scan/ScanScreen'));
 const AssetScreen = lazy(() => import('../asset/AssetScreen'));
 const UserScreen = lazy(() => import('../user/UserScreen'));
 const AssignmentScreen = lazy(() => import('../assignment/AssignmentScreen'));
+const ProfileScreen = lazy(() => import('../profile/ProfileScreen'));
+const SettingsScreen = lazy(() => import('../settings/SettingsScreen'));
 
 type InnerComponentPropsType = {
     destination: Destination,
@@ -36,10 +37,12 @@ const InnerComponent = (props: InnerComponentPropsType) => {
             return <UserScreen onDrawerToggle={props.onDrawerToggle}/>
         case Destination.ASSIGNMENTS:
             return <AssignmentScreen onDrawerToggle={props.onDrawerToggle}/>
+        case Destination.PROFILE:
+            return <ProfileScreen onDrawerToggle={props.onDrawerToggle}/>
         case Destination.SETTINGS:
-            return <SettingsComponent onDrawerToggle={props.onDrawerToggle}/>
+            return <SettingsScreen onDrawerToggle={props.onDrawerToggle}/>
         default:
-            return <ErrorNotFoundStateComponent/>
+            return <ErrorNotFoundState/>
     }
 }
 
@@ -146,17 +149,17 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
 }
 
 const RootComponent = () => {
-    const authState = useContext(AuthContext);
+    const { status, user } = useAuthState();
     const [destination, setDestination] = useState<Destination>(Destination.ASSETS);
 
     const onNavigate = (newDestination: Destination) => {
         setDestination(newDestination)
     }
 
-    if (authState instanceof AuthPending) {
+    if (status === AuthStatus.PENDING) {
         return <MainLoadingStateComponent/>
-    } else if (authState instanceof AuthFetched) {
-        if (authState.user != null) {
+    } else if (status === AuthStatus.FETCHED) {
+        if (user !== undefined) {
             return (
                 <SnackbarProvider 
                     maxSnack={3}

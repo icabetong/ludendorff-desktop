@@ -68,11 +68,11 @@ const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) 
                     alignItems="center" 
                     justifyContent="center" 
                     className={classes.root}>
-                    <Grid xs={12} sm={4} item>
+                    <Grid xs={12} sm={8} md={6} lg={4} item>
                         <Paper className={classes.containerPaper}>
                             <div className={classes.container}>
-                                <Typography variant="h5">{ t("hello") }</Typography>
-                                <Typography variant="h5">{ t("welcome_back") }</Typography>
+                                <Typography variant="h5">{ t("auth.hello") }</Typography>
+                                <Typography variant="h5">{ t("auth.welcome_back") }</Typography>
                             </div>
                             <div className={classes.container}>
                                 { error != null && 
@@ -86,7 +86,7 @@ const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) 
                                     id="authentication-email"
                                     type="text"
                                     value={email}
-                                    label={ t("email") }
+                                    label={ t("field.email") }
                                     error={!!error}
                                     disabled={isAuthenticating}
                                     onChange={onEmailInputChanged}/>
@@ -95,7 +95,7 @@ const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) 
                                     id="authentication-password"
                                     type="password"
                                     value={password}
-                                    label={ t("password") }
+                                    label={ t("field.password") }
                                     error={!!error}
                                     disabled={isAuthenticating}
                                     onChange={onPasswordInputChanged}/>
@@ -105,10 +105,10 @@ const AuthComponent: React.FunctionComponent<RouteComponentProps> = ({history}) 
                                     type="submit" 
                                     variant="contained" 
                                     color="primary"
-                                    aria-label={ t("sign_in") }
+                                    aria-label={ t("button.signin") }
                                     fullWidth={true}
                                     disabled={isAuthenticating}>
-                                    { isAuthenticating ? "Authenticating" : "Sign in" }
+                                    { isAuthenticating ? t("feedback.authenticating") : t("button.signin") }
                                 </Button>
                             </div>
                         </Paper>

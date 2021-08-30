@@ -6,14 +6,20 @@ import DialogContent from "@material-ui/core/DialogContent";
 import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
 
-type CategoryRemoveProps = {
+type ConfirmationDialogProps = {
     isOpen: boolean,
-    onDismiss: () => void,
+    title: string,
+    summary: string,
+    positiveButtonText?: string,
+    negativeButtonText?: string,
     onConfirm: () => void,
+    onDismiss: () => void,
 }
 
-const CategoryRemove = (props: CategoryRemoveProps) => {
+const ConfirmationDialog = (props: ConfirmationDialogProps) => {
     const { t } = useTranslation();
+    const positiveButtonText = props.positiveButtonText === undefined ? "button.ok" : props.positiveButtonText;
+    const negativeButtonText = props.negativeButtonText === undefined ? "button.cancel" : props.negativeButtonText;
 
     return (
         <Dialog
@@ -21,26 +27,24 @@ const CategoryRemove = (props: CategoryRemoveProps) => {
             fullWidth={true}
             open={props.isOpen}
             onClose={() => props.onDismiss()}>
-            <DialogTitle>{ t("confirm_category_remove") }</DialogTitle>
+            <DialogTitle>{ t(props.title) }</DialogTitle>
             <DialogContent>
-                <DialogContentText>
-                    { t("confirm_category_remove_summary") }
-                </DialogContentText>
+                <DialogContentText>{ t(props.summary) }</DialogContentText>
             </DialogContent>
             <DialogActions>
                 <Button 
                     color="primary"
                     onClick={() => props.onDismiss()}>
-                        { t("cancel") }
+                        { t(negativeButtonText) }
                 </Button>
                 <Button
                     color="primary"
                     onClick={() => props.onConfirm()}>
-                        { t("delete") }
+                        { t(positiveButtonText) }
                 </Button>
             </DialogActions>
         </Dialog>
     )
 }
 
-export default CategoryRemove;
+export default ConfirmationDialog;

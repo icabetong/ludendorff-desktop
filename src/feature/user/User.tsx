@@ -10,7 +10,12 @@ export enum Permission {
 }
 
 export const hasPermission = (user: User, permission: Permission): boolean => {
-    return (user.permissions & permission) === permission;
+    /**
+     *  Check if the user has the required permissions,
+     *  or has the ability to override the permission systems.
+     */
+    return user.permissions.includes(Permission.ADMINISTRATIVE) ||
+        user.permissions.includes(permission) ;
 }
 
 export const minimize = (user: User): UserCore => {
@@ -29,7 +34,7 @@ export type User = {
     lastName?: string,
     email?: string,
     imageUrl?: string,
-    permissions: number,
+    permissions: number[],
     position?: string,
     department?: DepartmentCore
 }

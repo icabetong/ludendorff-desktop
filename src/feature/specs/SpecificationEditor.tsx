@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Button from "@material-ui/core/Button";
 import Container from "@material-ui/core/Container";
@@ -28,7 +29,37 @@ type SpecificationEditorProps = {
 const SpecificationEditor = (props: SpecificationEditorProps) => {
     const { t } = useTranslation();
     const classes = useStyles();
+    const [keyError, setKeyError] = useState(false);
+    const [valueError, setValueError] = useState(false);
     const specification = props.specification === undefined ? ['', ''] : props.specification;
+
+    const onKeyChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+        let key = event.target.value;
+        if (key !== '' && keyError)
+            setKeyError(false);
+        props.onKeyChanged(key); 
+    }
+
+    const onValueChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+        let value = event.target.value;
+        if (value !== '' && valueError)
+            setValueError(false);
+        return props.onValueChanged(value);
+    }
+
+    const onPreSubmit = () => {
+        if (specification[0] === '') {
+            setKeyError(true);
+            return;
+        }
+
+        if (specification[1] === '') {
+            setValueError(true);
+            return;
+        }
+
+        props.onSubmit();
+    }
 
     return (
         <Dialog
@@ -37,33 +68,33 @@ const SpecificationEditor = (props: SpecificationEditorProps) => {
             open={props.isOpen}
             onClose={() => props.onCancel()}>
             <DialogTitle>{ t("specification_details") }</DialogTitle>
-            <DialogContent dividers={true}>
+            <DialogContent>
                 <Container disableGutters>
                     <TextField
                         autoFocus
                         id="editor-specification-key"
                         type="text"
-                        label={ t("specification_key") }
+                        label={ t("field.specification_key") }
                         value={specification[0]}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            props.onKeyChanged(e.target.value)
-                        }
+                        error={keyError}
+                        helperText={keyError ? t("feedback.empty_specification_key") : undefined}
+                        onChange={onKeyChanged}
                         className={classes.textField}/>
                     <TextField
                         id="editor-specification-value"
                         type="text"
-                        label={ t("specification_value") }
+                        label={ t("field.specification_value") }
                         value={specification[1]}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                            props.onValueChanged(e.target.value)
-                        }
+                        error={valueError}
+                        helperText={valueError ? t("feedback.empty_specification_value") : undefined}
+                        onChange={onValueChanged}
                         className={classes.textField}/>
                 </Container>
             </DialogContent>
 
             <DialogActions>
-                <Button color="primary" onClick={() => props.onCancel()}>{ t("cancel") }</Button>
-                <Button color="primary" onClick={() => props.onSubmit()}>{ t("save") }</Button>
+                <Button color="primary" onClick={props.onCancel}>{ t("button.cancel") }</Button>
+                <Button color="primary" onClick={onPreSubmit}>{ t("button.save") }</Button>
             </DialogActions>
         </Dialog>
     )

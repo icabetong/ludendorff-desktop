@@ -7,7 +7,7 @@ import useLocalStorage from "../../shared/persistence";
 import AuthComponent from '../auth/Auth'
 import RootComponent from '../root/Root';
 import history from "../navigation/History";
-import { GenericErrorStateComponent } from "../state/ErrorStates";
+import { ErrorNotFoundState } from "../state/ErrorStates";
 
 const secondaryColors = {
     main: '#ff79c6',
@@ -61,7 +61,12 @@ const baseTheme = createTheme({
                 fontSize: '1em',
                 fontWeight: 500
             },
-        }
+        },
+        MuiDialogContent: {
+            dividers: {
+                padding: '16px 0'
+            }
+        },
     }
 })
 
@@ -129,7 +134,7 @@ export const CoreComponent = () => {
                             <Switch>
                                 <Route path="/" component={RootComponent} exact/>
                                 <Route path="/auth" component={AuthComponent}/>
-                                <Route path="*" component={GenericErrorStateComponent} exact/>
+                                <Route path="*" component={ErrorNotFoundState} exact/>
                             </Switch>
                         </Router>
                 </ThemeProvider>
