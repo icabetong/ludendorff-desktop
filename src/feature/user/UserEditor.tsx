@@ -25,7 +25,10 @@ import { DepartmentCore } from "../department/Department";
 const useStyles = makeStyles((theme) => ({
     textField: {
         width: '100%',
-        margin: '0.6em 0'
+        margin: '0.6em 0',
+        '& .MuiListItem-root': {
+            borderRadius: theme.spacing(1)
+        }
     },
     icon: {
         width: '1em',
@@ -68,7 +71,7 @@ const UserEditor = (props: UserEditorProps) => {
     const [positionError, setPositionError] = useState(false);
 
     const onLastNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let lastName = event.target.value;
+        const lastName = event.target.value;
         if (lastName !== '' && lastNameError)
             setLastNameError(false);
 
@@ -76,7 +79,7 @@ const UserEditor = (props: UserEditorProps) => {
     }
 
     const onFirstNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let firstName = event.target.value;
+        const firstName = event.target.value;
         if (firstName !== '' && firstNameError)
             setFirstNameError(false);
 
@@ -84,7 +87,7 @@ const UserEditor = (props: UserEditorProps) => {
     }
 
     const onEmailAddressChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let email = event.target.value;
+        const email = event.target.value;
         if (email !== '' && emailError)
             setEmailError(false);
 
@@ -92,7 +95,7 @@ const UserEditor = (props: UserEditorProps) => {
     }
 
     const onPositionChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let position = event.target.value;
+        const position = event.target.value;
         if (position !== '' && positionError)
             setPositionError(false);
 

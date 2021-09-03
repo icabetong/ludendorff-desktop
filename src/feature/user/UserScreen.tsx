@@ -19,6 +19,7 @@ import EmptyStateComponent from "../state/EmptyStates";
 
 import { usePermissions } from "../auth/AuthProvider";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
+import { usePreferences } from "../settings/Preference";
 import { User, minimize } from "./User";
 import UserList from "./UserList";
 
@@ -91,6 +92,7 @@ const UserScreen = (props: UserScreenProps) => {
     const classes = useStyles();
     const { enqueueSnackbar } = useSnackbar();
     const { canRead, canManageUsers } = usePermissions();
+    const preferences = usePreferences();
 
     const columns = [
         { field: userId, headerName: t("field.id"), hide: true },
@@ -305,10 +307,10 @@ const UserScreen = (props: UserScreenProps) => {
         if (departmentEditorState.isCreate) {
             DepartmentRepository.create(department)
                 .then(() => {
-                    enqueueSnackbar(t("feedback_department_created"));
+                    enqueueSnackbar(t("feedback.department_created"));
                     
                 }).catch(() => {
-                    enqueueSnackbar(t("feedback_department_create_error"));
+                    enqueueSnackbar(t("feedback.department_create_error"));
 
                 }).finally(() => {
                     departmentEditorDispatch({ type: DepartmentEditorActionType.DISMISS })
@@ -316,10 +318,10 @@ const UserScreen = (props: UserScreenProps) => {
         } else {
             DepartmentRepository.update(department)
                 .then(() => {
-                    enqueueSnackbar(t("feedback_department_updated"));
+                    enqueueSnackbar(t("feedback.department_updated"));
 
                 }).catch(() => {
-                    enqueueSnackbar(t("feedback_department_update_error"))
+                    enqueueSnackbar(t("feedback.department_update_error"))
 
                 }).finally(() => {
                     departmentEditorDispatch({ type: DepartmentEditorActionType.DISMISS })
@@ -341,10 +343,10 @@ const UserScreen = (props: UserScreenProps) => {
 
         DepartmentRepository.remove(department)
             .then(() => {
-                enqueueSnackbar(t("feedback_department_removed"));
+                enqueueSnackbar(t("feedback.department_removed"));
 
             }).catch(() => {
-                enqueueSnackbar(t("feedback_department_remove_error"));
+                enqueueSnackbar(t("feedback.department_remove_error"));
 
             }).finally(() => {
                 departmentRemoveDispatch({
@@ -387,6 +389,7 @@ const UserScreen = (props: UserScreenProps) => {
                                 }}
                                 rows={users}
                                 columns={columns}
+                                density={preferences.density}
                                 pageSize={15}
                                 loading={isUsersLoading}
                                 paginationMode="server"
@@ -481,8 +484,8 @@ const UserScreen = (props: UserScreenProps) => {
 
             <ConfirmationDialog
                 isOpen={departmentRemoveState.isRequest}
-                title="confirm.department_remove"
-                summary="confirm.department_remove_summary"
+                title="dialog.department_remove"
+                summary="dialog.department_remove_summary"
                 onDismiss={onDismissDepartmentConfirmation}
                 onConfirm={onDepartmentItemRemove}/>
         </Box>

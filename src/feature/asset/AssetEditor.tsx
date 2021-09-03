@@ -30,7 +30,10 @@ import { Specification } from "../specs/Specification";
 const useStyles = makeStyles((theme) => ({
     textField: {
         width: '100%',
-        margin: '0.6em 0'
+        margin: '0.6em 0',
+        '& .MuiListItem-root': {
+            borderRadius: theme.spacing(1)
+        }
     },
     icon: {
         width: '1em',
@@ -67,7 +70,7 @@ const AssetEditor = (props: AssetEditorProps) => {
     const [nameError, setNameError] = useState(false);
 
     const onNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        let name = event.target.value;
+        const name = event.target.value;
         if (name !== '' && nameError)
             setNameError(false);
 
@@ -136,6 +139,7 @@ const AssetEditor = (props: AssetEditorProps) => {
                                     </Typography>
                                 </ListItem>
                             </FormControl>
+                            
                         </Grid>
                         <Grid item xs={6} className={classes.gridItem}>
                             <FormLabel component="legend">

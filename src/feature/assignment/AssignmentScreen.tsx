@@ -1,3 +1,4 @@
+import { useState, useReducer, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import Box from "@material-ui/core/Box";
 import Hidden from "@material-ui/core/Hidden";
@@ -18,14 +19,22 @@ import EmptyStateComponent from "../state/EmptyStates";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 
 import { usePermissions } from "../auth/AuthProvider";
+import { Asset, minimize as minimizeAsset } from "../asset/Asset";
 import { Assignment } from "./Assignment";
 import AssignmentList from "./AssignmentList";
+import { usePreferences } from "../settings/Preference";
+import { User, minimize as minimizeUser } from "../user/User";
 
+import firebase from "firebase/app";
 import { firestore } from "../../index";
 import { usePagination } from "../../shared/pagination";
-import { formatDate } from "../../shared/utils";
+import { formatDate, newId } from "../../shared/utils";
 
 import {
+    assetCollection,
+    assetName,
+    userCollection,
+    lastName,
     assignmentCollection,
     assignmentId,
     assignmentAsset,
@@ -35,6 +44,17 @@ import {
     dateReturned,
     location
 } from "../../shared/const";
+
+import {
+    AssignmentEditorActionType,
+    assignmentEditorInitialState,
+    assignmentEditorReducer
+} from "./AssignmentEditorReducer";
+
+const AssignmentEditor = lazy(() => import('./AssignmentEditor'));
+
+const AssetPicker = lazy(() => import('../asset/AssetPicker'));
+const UserPicker = lazy(() => import('../user/UserPicker'));
 
 const useStyles = makeStyles(() => ({
     root: {
@@ -54,6 +74,7 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
     const { t } = useTranslation();
     const classes = useStyles();
     const { isAdmin } = usePermissions();
+    const preferences = usePreferences();
 
     const columns = [
         { field: assignmentId, headerName: t("field.id"), hide: true },
@@ -93,9 +114,127 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
             .orderBy(assignmentAssetName, "asc"), { limit: 15 }
     );
 
+    const [editorState, editorDispatch] = useReducer(assignmentEditorReducer, assignmentEditorInitialState);
+
+    const onAssignmentEditorView = () => {
+        editorDispatch({
+            type: AssignmentEditorActionType.CREATE
+        })
+    }
+    const onAssignmentEditorDismiss = () => {
+        editorDispatch({
+            type: AssignmentEditorActionType.DISMISS
+        })
+    }
+
+    const onAssignmentEditorCommit = () => {
+
+    }
+
+    const onAssignmentDateAssignedChanged = (dateAssigned: Date) => {
+        let assignment = editorState.assignment;
+        if (assignment === undefined)
+            assignment = { assignmentId: newId() }
+        assignment!.dateAssigned = firebase.firestore.Timestamp.fromDate(dateAssigned);
+        editorDispatch({
+            type: AssignmentEditorActionType.CHANGED,
+            payload: assignment
+        })
+    }
+
+    const onAssignmentDateReturnedChanged = (dateReturned: Date) => {
+        let assignment = editorState.assignment;
+        if (assignment === undefined)
+            assignment = { assignmentId: newId() }
+        assignment!.dateReturned = firebase.firestore.Timestamp.fromDate(dateReturned);
+        editorDispatch({
+            type: AssignmentEditorActionType.CHANGED,
+            payload: assignment
+        })
+    }
+
+    const onAssignmentLocationChanged = (location: string) => {
+        let assignment = editorState.assignment;
+        if (assignment === undefined)
+            assignment = { assignmentId: newId() }
+        assignment!.location = location;
+        editorDispatch({
+            type: AssignmentEditorActionType.CHANGED,
+            payload: assignment
+        })
+    }
+
+    const onAssignmentRemarksChanged = (remarks: string) => {
+        let assignment = editorState.assignment;
+        if (assignment === undefined)
+            assignment = { assignmentId: newId() }
+        assignment!.remarks = remarks; 
+        editorDispatch({
+            type: AssignmentEditorActionType.CHANGED,
+            payload: assignment
+        })
+    } 
+
+    const onAssignmentAssetSelected = (asset: Asset) => {
+        let assignment = editorState.assignment;
+        if (assignment === undefined)
+            assignment = { assignmentId: newId() }
+        assignment!.asset = minimizeAsset(asset);
+        onAssetPickerDismiss()
+        editorDispatch({
+            type: AssignmentEditorActionType.CHANGED,
+            payload: assignment
+        })
+    }
+
+    const onAssignmentUserSelected = (user: User) => {
+        let assignment = editorState.assignment;
+        if (assignment === undefined)
+            assignment = { assignmentId: newId() }
+        assignment!.user = minimizeUser(user);
+        onUserPickerDismiss()
+        editorDispatch({
+            type: AssignmentEditorActionType.CHANGED,
+            payload: assignment
+        })
+    }
+
     const onAssignmentSelected = (assignment: Assignment) => {
 
     }
+
+    const {
+        items: assets,
+        isLoading: isAssetsLoading,
+        isStart: atAssetStart,
+        isEnd: atAssetEnd,
+        getPrev: getPreviousAssets,
+        getNext: getNextAssets
+    } = usePagination<Asset>(
+        firestore
+            .collection(assetCollection)
+            .orderBy(assetName, "asc"), { limit: 15 }
+    );
+
+    const [isAssetPickerOpen, setAssetPickerOpen] = useState(false);
+    const onAssetPickerView = () => { setAssetPickerOpen(true) }
+    const onAssetPickerDismiss = () => { setAssetPickerOpen(false) }
+
+    const {
+        items: users,
+        isLoading: isUsersLoading,
+        isStart: atUserStart,
+        isEnd: atUserEnd,
+        getPrev: getPreviousUsers,
+        getNext: getNextUsers
+    } = usePagination<User>(
+        firestore.collection(userCollection)
+            .orderBy(lastName, "asc"), { limit: 15 }
+    )
+
+    const [isUserPickerOpen, setUserPickerOpen] = useState(false);
+    const onUserPickerView = () => { setUserPickerOpen(true) }
+    const onUserPickerDismiss = () => { setUserPickerOpen(false) }
 
     return (
         <Box className={classes.root}>
@@ -103,6 +242,7 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                 title={ t("navigation.assignments") }
                 buttonText={isAdmin ? t("add") : undefined }
                 buttonIcon={PlusIcon}
+                buttonOnClick={onAssignmentEditorView}
                 onDrawerToggle={props.onDrawerToggle}
             />
             { isAdmin
@@ -117,6 +257,7 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                                 }}
                                 rows={assignments}
                                 columns={columns}
+                                density={preferences.density}
                                 pageSize={15}
                                 loading={isAssignmentsLoading}
                                 paginationMode="server"
@@ -142,6 +283,47 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                 </>
                 : <ErrorNoPermissionState/>
             }
+
+            <AssignmentEditor
+                isOpen={editorState.isOpen}
+                id={editorState.assignment?.assignmentId}
+                asset={editorState.assignment?.asset}
+                user={editorState.assignment?.user}
+                dateAssigned={editorState.assignment?.dateAssigned}
+                dateReturned={editorState.assignment?.dateReturned}
+                location={editorState.assignment?.location}
+                remarks={editorState.assignment?.remarks}
+                onCancel={onAssignmentEditorDismiss}
+                onSubmit={onAssignmentEditorCommit}
+                onAssetSelect={onAssetPickerView}
+                onUserSelect={onUserPickerView}
+                onDateAssignedChanged={onAssignmentDateAssignedChanged}
+                onDateReturnedChanged={onAssignmentDateReturnedChanged}
+                onLocationChanged={onAssignmentLocationChanged}
+                onRemarksChanged={onAssignmentRemarksChanged}/>
+
+            <AssetPicker
+                isOpen={isAssetPickerOpen}
+                assets={assets}
+                isLoading={isAssetsLoading}
+                hasPrevious={atAssetStart}
+                hasNext={atAssetEnd}
+                onPrevious={getPreviousAssets}
+                onNext={getNextAssets}
+                onDismiss={onAssetPickerDismiss}
+                onSelectItem={onAssignmentAssetSelected}/>
+
+            <UserPicker
+                isOpen={isUserPickerOpen}
+                users={users}
+                isLoading={isUsersLoading}
+                hasPrevious={atUserStart}
+                hasNext={atUserEnd}
+                onPrevious={getPreviousUsers}
+                onNext={getNextUsers}
+                onDismiss={onUserPickerDismiss}
+                onSelectItem={onAssignmentUserSelected}/>
+
         </Box>
     )
 }
