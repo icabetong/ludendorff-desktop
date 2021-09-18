@@ -5,22 +5,28 @@ import Hidden from "@material-ui/core/Hidden";
 import LinearProgress from "@material-ui/core/LinearProgress";
 import MenuItem from "@material-ui/core/MenuItem";
 import { makeStyles } from "@material-ui/core/styles";
-import { DataGrid, GridOverlay, GridRowParams, GridValueGetterParams } from "@material-ui/data-grid";
+import { DataGrid, GridOverlay, GridRowParams, GridValueGetterParams, GridCellParams } from "@material-ui/data-grid";
 import { useSnackbar } from "notistack";
 
-import PlusIcon from "@heroicons/react/outline/PlusIcon";
-import UserIcon from "@heroicons/react/outline/UserIcon";
+import {
+    BanIcon,
+    CheckIcon,
+    PlusIcon,
+    UserIcon,
+    TrashIcon,
+} from "@heroicons/react/outline";
 
 import ComponentHeader from "../../components/ComponentHeader";
 import GridLinearProgress from "../../components/GridLinearProgress";
 import GridToolbar from "../../components/GridToolbar";
+import HeroIconButton from "../../components/HeroIconButton";
 import PaginationController from "../../components/PaginationController";
 import EmptyStateComponent from "../state/EmptyStates";
 
 import { usePermissions } from "../auth/AuthProvider";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import { usePreferences } from "../settings/Preference";
-import { User, minimize } from "./User";
+import { User, minimize, UserRepository } from "./User";
 import UserList from "./UserList";
 
 import { firestore } from "../../index";
@@ -38,6 +44,12 @@ import {
     userEditorInitialState,
     userEditorReducer
 } from "./UserEditorReducer";
+
+import {
+    UserRemoveActionType,
+    userRemoveInitialState,
+    userRemoveReducer
+} from "./UserRemoveReducer";
 
 import {
     DepartmentEditorActionType,
@@ -64,6 +76,7 @@ import {
 } from "../../shared/const";
 
 import ConfirmationDialog from "../shared/ItemRemoveDialog";
+
 
 const UserEditor = lazy(() => import("./UserEditor"));
 const UserPicker = lazy(() => import("./UserPicker"));
@@ -116,6 +129,35 @@ const UserScreen = (props: UserScreenProps) => {
                 let user = params.row as User;
                 return user.department?.name === undefined ? t("unknown") : user.department?.name;
             } 
+        },{
+            field: "manage",
+            headerName: t("navigation.manage"),
+            flex: 0.4,
+            disableColumnMenu: true,
+            sortable: false,
+            renderCell: (params: GridCellParams) => {
+                return (
+                    <HeroIconButton
+                        icon={params.row.disabled ? CheckIcon : BanIcon}
+                        aria-label={params.row.disabled ? t("button.enable") : t("button.disable")}
+                        onClick={() => onUserRequestChangeState(params.row as User)}/>
+                )
+            }
+        },
+        {
+            field: "delete",
+            headerName: t("button.delete"),
+            flex: 0.4,
+            disableColumnMenu: true,
+            sortable: false,
+            renderCell: (params: GridCellParams) => {
+                return (
+                    <HeroIconButton 
+                        icon={TrashIcon}
+                        aria-label={t("delete")}
+                        onClick={() => onUserRequestRemove(params.row as User)}/>
+                )
+            }
         }
     ]
 
@@ -157,7 +199,7 @@ const UserScreen = (props: UserScreenProps) => {
     const onUserEditorLastNameChanged = (lastName: string) => {
         let user = editorState.user;
         if (user === undefined)
-            user = { userId: newId(), permissions: [] }
+            user = { userId: newId(), permissions: [], disabled: false }
         user!.lastName = lastName;
         editorDispatch({
             type: UserEditorActionType.CHANGED,
@@ -168,7 +210,7 @@ const UserScreen = (props: UserScreenProps) => {
     const onUserEditorFirstNameChanged = (firstName: string) => {
         let user = editorState.user;
         if (user === undefined)
-            user = { userId: newId(), permissions: [] }
+            user = { userId: newId(), permissions: [], disabled: false }
         user!.firstName = firstName;
         editorDispatch({
             type: UserEditorActionType.CHANGED,
@@ -179,7 +221,7 @@ const UserScreen = (props: UserScreenProps) => {
     const onUserEditorEmailAddressChanged = (email: string) => {
         let user = editorState.user;
         if (user === undefined)
-            user = { userId: newId(), permissions: [] }
+            user = { userId: newId(), permissions: [], disabled: false }
         user!.email = email;
         editorDispatch({
             type: UserEditorActionType.CHANGED,
@@ -190,7 +232,7 @@ const UserScreen = (props: UserScreenProps) => {
     const onUserEditorPermissionsChanged = (permissions: number[]) => {
         let user = editorState.user;
         if (user === undefined)
-            user = { userId: newId(), permissions: [] }
+            user = { userId: newId(), permissions: [], disabled: false }
         user!.permissions = permissions;
         editorDispatch({
             type: UserEditorActionType.CHANGED,
@@ -201,7 +243,7 @@ const UserScreen = (props: UserScreenProps) => {
     const onUserEditorPositionChanged = (position: string) => {
         let user = editorState.user;
         if (user === undefined)
-            user = { userId: newId(), permissions: [] }
+            user = { userId: newId(), permissions: [], disabled: false }
         user!.position = position;
         editorDispatch({
             type: UserEditorActionType.CHANGED,
@@ -212,7 +254,7 @@ const UserScreen = (props: UserScreenProps) => {
     const onUserDepartmentSelected = (department: Department) => {
         let user = editorState.user;
         if (user === undefined)
-            user = { userId: newId(), permissions: [] }
+            user = { userId: newId(), permissions: [], disabled: false }
         user!.department = minimizeDepartment(department);
         setDepartmentPickerOpen(false);
         editorDispatch({
@@ -222,6 +264,64 @@ const UserScreen = (props: UserScreenProps) => {
     }
 
     const onUserEditorCommit = () => {
+        let user = editorState.user;
+        if (user === undefined)
+            return;
+
+        if (editorState.isCreate) {
+            UserRepository.create(user)
+                .then(() => {
+                    enqueueSnackbar(t("feedback.user_created"));
+                }).catch(() => {
+                    enqueueSnackbar(t("feedback.user_create_error"));
+                }).finally(() => {
+                    editorDispatch({ type: UserEditorActionType.DISMISS })
+                })
+        } else {
+            UserRepository.update(user)
+                .then(() => {
+                    enqueueSnackbar(t("feedback.user_updated"))
+                }).catch(() => {
+                    enqueueSnackbar(t("feedback.user_update_error"))
+                }).finally(() => {
+                    editorDispatch({ type: UserEditorActionType.DISMISS })
+                })
+        }
+    }
+
+    const [removeState, removeDispatch] = useReducer(userRemoveReducer, userRemoveInitialState);
+
+    const onUserRequestRemove = (user: User) => {
+        removeDispatch({
+            type: UserRemoveActionType.REQUEST,
+            payload: user
+        })
+    }
+
+    const onUserRequestRemoveDismiss = () => {
+        removeDispatch({
+            type: UserRemoveActionType.DISMISS
+        })
+    }
+
+    const onUserRemove = () => {
+        let user = removeState.user;
+        if (user === undefined)
+            return;
+
+        UserRepository.remove(user)
+            .then(() => {
+                enqueueSnackbar(t("feedback.user_removed"));
+            }).catch(() => {
+                enqueueSnackbar(t("feedback.user_remove_error"));
+            }).finally(() => {
+                removeDispatch({
+                    type: UserRemoveActionType.DISMISS
+                })
+            })
+    }
+
+    const onUserRequestChangeState = (user: User) => {
 
     }
 
@@ -488,6 +588,13 @@ const UserScreen = (props: UserScreenProps) => {
                 summary="dialog.department_remove_summary"
                 onDismiss={onDismissDepartmentConfirmation}
                 onConfirm={onDepartmentItemRemove}/>
+
+            <ConfirmationDialog
+                isOpen={removeState.isRequest}
+                title="dialog.user_remove"
+                summary="dialog.user_remove_summary"
+                onDismiss={onUserRequestRemoveDismiss}
+                onConfirm={onUserRemove}/>
         </Box>
     )
 }

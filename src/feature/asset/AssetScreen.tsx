@@ -143,9 +143,11 @@ const AssetScreen = (props: AssetScreenProps) => {
             valueGetter: (params: GridValueGetterParams) => t(getStatusLoc(params.row.status)) 
         },
         {
-            field: "action",
-            headerName: t("actions"),
-            flex: 0.5,
+            field: "delete",
+            headerName: t("button.delete"),
+            flex: 0.4,
+            disableColumnMenu: true,
+            sortable: false,
             renderCell: (params: GridCellParams) => {
                 return (
                     <HeroIconButton 
