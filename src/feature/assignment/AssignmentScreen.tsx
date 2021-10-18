@@ -3,8 +3,10 @@ import { useTranslation } from "react-i18next";
 import Box from "@material-ui/core/Box";
 import Hidden from "@material-ui/core/Hidden";
 import LinearProgress from "@material-ui/core/LinearProgress";
-import { DataGrid, GridOverlay, GridValueGetterParams } from "@material-ui/data-grid";
+import MenuItem from "@material-ui/core/MenuItem";
+import { DataGrid, GridOverlay, GridRowParams, GridValueGetterParams } from "@material-ui/data-grid";
 import { makeStyles } from "@material-ui/core/styles";
+import { useSnackbar } from "notistack";
 
 import {
     PlusIcon,
@@ -18,10 +20,12 @@ import PaginationController from "../../components/PaginationController";
 import EmptyStateComponent from "../state/EmptyStates";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 
-import { usePermissions } from "../auth/AuthProvider";
+import { useAuthState, usePermissions } from "../auth/AuthProvider";
 import { Asset, minimize as minimizeAsset } from "../asset/Asset";
-import { Assignment } from "./Assignment";
+import { Assignment, AssignmentRepository } from "./Assignment";
 import AssignmentList from "./AssignmentList";
+import { Request } from "../requests/Request";
+import RequestScreen from "../requests/RequestScreen"; 
 import { usePreferences } from "../settings/Preference";
 import { User, minimize as minimizeUser } from "../user/User";
 
@@ -42,7 +46,9 @@ import {
     assignmentUser,
     dateAssigned,
     dateReturned,
-    location
+    location,
+    requestCollection,
+    requestedAssetName
 } from "../../shared/const";
 
 import {
@@ -73,8 +79,10 @@ type AssignmentScreenProps = {
 const AssignmentScreen = (props: AssignmentScreenProps) => {
     const { t } = useTranslation();
     const classes = useStyles();
+    const { user } = useAuthState();
     const { isAdmin } = usePermissions();
     const preferences = usePreferences();
+    const { enqueueSnackbar } = useSnackbar();
 
     const columns = [
         { field: assignmentId, headerName: t("field.id"), hide: true },
@@ -96,15 +104,19 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
             field: dateAssigned, 
             headerName: t("field.date_assigned"), 
             flex: 1,
-            valueGetter: (params: GridValueGetterParams) => 
-                t(formatDate(params.row.dateAssigned))
+            valueGetter: (params: GridValueGetterParams) => {
+                const formatted = formatDate(params.row.dateAssigned);
+                return formatted === 'unknown' ? t("not_yet_returned") : formatted;
+            }                
         },
         { 
             field: dateReturned, 
             headerName: t("field.date_returned"), 
             flex: 1,
-            valueGetter: (params: GridValueGetterParams) =>
-                t(formatDate(params.row.dateReturned))
+            valueGetter: (params: GridValueGetterParams) => {
+                const formatted = formatDate(params.row.dateReturned);
+                return formatted === 'unknown' ? t("not_yet_returned") : formatted;
+            }
         },
         { 
             field: location,
@@ -127,6 +139,12 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
     );
 
     const [editorState, editorDispatch] = useReducer(assignmentEditorReducer, assignmentEditorInitialState);
+    const [previousAssetId, setPreviousAssetId] = useState<string | undefined>(undefined);
+    const [previousUserId, setPreviousUserId] = useState<string | undefined>(undefined);
+
+    const onDataGridRowDoubleClicked = (params: GridRowParams) => {
+        onAssignmentSelected(params.row as Assignment);
+    }
 
     const onAssignmentEditorView = () => {
         editorDispatch({
@@ -140,7 +158,42 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
     }
 
     const onAssignmentEditorCommit = () => {
+        let assignment = editorState.assignment;
+        if (assignment === undefined)
+            return;
+        if (user === undefined)
+            return;
+        
+        const displayName = `${user.firstName} ${user.lastName}`;
+        if (editorState.isCreate) {
+            AssignmentRepository.create(assignment, displayName)
+                .then(() => {
+                    enqueueSnackbar(t("feedback.assignment_created"));
 
+                }).catch(() => {
+                    enqueueSnackbar(t("feedback.assignment_create_error"));
+
+                }).finally(() => {
+                    editorDispatch({
+                        type: AssignmentEditorActionType.DISMISS
+                    })
+
+                })
+        } else {
+            AssignmentRepository.update(assignment, displayName, previousAssetId, previousUserId)
+                .then(() => {
+                    enqueueSnackbar(t("feedback.assignment_updated"));
+
+                }).catch(() => {
+                    enqueueSnackbar(t("feedback.assignment_update_error"));
+
+                }).finally(() => {
+                    editorDispatch({
+                        type: AssignmentEditorActionType.DISMISS
+                    })
+
+                });
+        }
     }
 
     const onAssignmentDateAssignedChanged = (dateAssigned: Date) => {
@@ -191,6 +244,11 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
         let assignment = editorState.assignment;
         if (assignment === undefined)
             assignment = { assignmentId: newId() }
+
+        if (assignment!.asset?.assetId !== previousAssetId) {
+            setPreviousAssetId(assignment!.asset?.assetId);
+        }
+
         assignment!.asset = minimizeAsset(asset);
         onAssetPickerDismiss()
         editorDispatch({
@@ -203,6 +261,11 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
         let assignment = editorState.assignment;
         if (assignment === undefined)
             assignment = { assignmentId: newId() }
+
+        if (assignment!.user?.userId !== previousUserId) {
+            setPreviousUserId(assignment!.user?.userId)
+        }
+
         assignment!.user = minimizeUser(user);
         onUserPickerDismiss()
         editorDispatch({
@@ -212,6 +275,35 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
     }
 
     const onAssignmentSelected = (assignment: Assignment) => {
+        editorDispatch({
+            type: AssignmentEditorActionType.UPDATE,
+            payload: assignment
+        })
+    }
+
+    const {
+        items: requests,
+        isLoading: isRequestsLoading,
+        isStart: atRequestStart,
+        isEnd: atRequestEnd,
+        getPrev: getPreviousRequests,
+        getNext: getNextRequests
+    } = usePagination<Request>(
+        firestore
+            .collection(requestCollection)
+            .orderBy(requestedAssetName, "asc"), { limit: 15 }
+    )
+
+    const [isRequestListOpen, setRequestListOpen] = useState(false);
+
+    const onRequestListView = () => { setRequestListOpen(true) }
+    const onRequestListDismiss = () => { setRequestListOpen(false) }
+
+    const onRequestItemSelected = (request: Request) => {
+
+    }
+
+    const onRequestItemConfirmRemove = (request: Request) => {
 
     }
 
@@ -256,6 +348,9 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                 buttonIcon={PlusIcon}
                 buttonOnClick={onAssignmentEditorView}
                 onDrawerToggle={props.onDrawerToggle}
+                menuItems={[
+                    <MenuItem key={0} onClick={onRequestListView}>{t("navigation.requests")}</MenuItem>
+                ]}
             />
             { isAdmin
                 ? <>
@@ -274,6 +369,7 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                                 loading={isAssignmentsLoading}
                                 paginationMode="server"
                                 getRowId={(r) => r.assignmentId}
+                                onRowDoubleClick={onDataGridRowDoubleClicked}
                                 hideFooter/>
                         </div>
                     </Hidden>
@@ -313,6 +409,18 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                 onDateReturnedChanged={onAssignmentDateReturnedChanged}
                 onLocationChanged={onAssignmentLocationChanged}
                 onRemarksChanged={onAssignmentRemarksChanged}/>
+
+            <RequestScreen
+                isOpen={isRequestListOpen}
+                requests={requests}
+                isLoading={isRequestsLoading}
+                hasPrevious={atRequestStart}
+                hasNext={atRequestEnd}
+                onPreviousBatch={getPreviousRequests}
+                onNextBatch={getNextRequests}
+                onDismiss={onRequestListDismiss}
+                onSelectItem={onRequestItemSelected}
+                onDeleteItem={onRequestItemConfirmRemove}/>
 
             <AssetPicker
                 isOpen={isAssetPickerOpen}

@@ -4,6 +4,7 @@ import Box from "@material-ui/core/Box";
 import Hidden from "@material-ui/core/Hidden";
 import LinearProgress from "@material-ui/core/LinearProgress";
 import MenuItem from "@material-ui/core/MenuItem";
+import Tooltip from "@material-ui/core/Tooltip";
 import { makeStyles } from "@material-ui/core/styles";
 import { DataGrid, GridOverlay, GridRowParams, GridValueGetterParams, GridCellParams } from "@material-ui/data-grid";
 import { useSnackbar } from "notistack";
@@ -34,8 +35,7 @@ import { usePagination } from "../../shared/pagination";
 import { newId } from "../../shared/utils";
 
 import { 
-    Department, 
-    DepartmentRepository,
+    Department,
     minimize as minimizeDepartment 
 } from "../department/Department";
 
@@ -44,6 +44,12 @@ import {
     userEditorInitialState,
     userEditorReducer
 } from "./UserEditorReducer";
+
+import {
+    UserModifyActionType,
+    userModifyInitialState,
+    userModifyReducer
+} from "./UserModifyReducer";
 
 import {
     UserRemoveActionType,
@@ -56,12 +62,6 @@ import {
     departmentEditorInitialState,
     departmentEditorReducer
 } from "../department/DepartmentEditorReducer";
-
-import {
-    DepartmentRemoveActionType,
-    departmentRemoveInitialState,
-    departmentRemoveReducer
-} from "../department/DepartmentRemoveReducer";
 
 import {
     userCollection,
@@ -77,12 +77,10 @@ import {
 
 import ConfirmationDialog from "../shared/ItemRemoveDialog";
 
-
 const UserEditor = lazy(() => import("./UserEditor"));
 const UserPicker = lazy(() => import("./UserPicker"));
 
 const DepartmentScreen = lazy(() => import("../department/DepartmentScreen"));
-const DepartmentEditor = lazy(() => import("../department/DepartmentEditor"));
 const DepartmentPicker = lazy(() => import("../department/DepartmentPicker"));
 
 const useStyles = makeStyles(() => ({
@@ -136,11 +134,16 @@ const UserScreen = (props: UserScreenProps) => {
             disableColumnMenu: true,
             sortable: false,
             renderCell: (params: GridCellParams) => {
+                const user = params.row as User;
                 return (
-                    <HeroIconButton
-                        icon={params.row.disabled ? CheckIcon : BanIcon}
-                        aria-label={params.row.disabled ? t("button.enable") : t("button.disable")}
-                        onClick={() => onUserRequestChangeState(params.row as User)}/>
+                    <Tooltip title={<>{t(user.disabled ? "button.enable" : "button.disable")}</>} placement="bottom">
+                        <span>
+                            <HeroIconButton
+                                icon={params.row.disabled ? CheckIcon : BanIcon}
+                                aria-label={params.row.disabled ? t("button.enable") : t("button.disable")}
+                                onClick={() => onUserRequestChangeState(user)}/>
+                        </span>
+                    </Tooltip>
                 )
             }
         },
@@ -177,7 +180,6 @@ const UserScreen = (props: UserScreenProps) => {
     const [editorState, editorDispatch] = useReducer(userEditorReducer, userEditorInitialState);
     const [isPickerOpen, setPickerOpen] = useState(false);
 
-    const onUserPickerView = () => { setPickerOpen(true) }
     const onUserPickerDismiss = () => { setPickerOpen(false) }
 
     const onDataGridRowDoubleClick = (params: GridRowParams) => {
@@ -321,7 +323,22 @@ const UserScreen = (props: UserScreenProps) => {
             })
     }
 
+    const [modifyState, modifyDispatch] = useReducer(userModifyReducer, userModifyInitialState);
+
     const onUserRequestChangeState = (user: User) => {
+        modifyDispatch({
+            type: UserModifyActionType.REQUEST,
+            payload: user
+        })
+    }
+
+    const onUserRequestChangeStateDismiss = () => {
+        modifyDispatch({
+            type: UserModifyActionType.DISMISS
+        })
+    }
+
+    const onUserModify = () => {
 
     }
 
@@ -349,7 +366,6 @@ const UserScreen = (props: UserScreenProps) => {
     const [isDepartmentPickerOpen, setDepartmentPickerOpen] = useState(false);
     
     const [departmentEditorState, departmentEditorDispatch] = useReducer(departmentEditorReducer, departmentEditorInitialState);
-    const [departmentRemoveState, departmentRemoveDispatch] = useReducer(departmentRemoveReducer, departmentRemoveInitialState);
 
     const onDepartmentView = () => { setDepartmentOpen(true) }
     const onDepartmentDismiss = () => { setDepartmentOpen(false) }
@@ -379,85 +395,6 @@ const UserScreen = (props: UserScreenProps) => {
     const onDepartmentEditorView = () => {
         departmentEditorDispatch({
             type: DepartmentEditorActionType.CREATE
-        })
-    }
-
-    const onDepartmentEditorDismiss = () => {
-        departmentEditorDispatch({
-            type: DepartmentEditorActionType.DISMISS
-        })
-    }
-
-    const onDepartmentEditorNameChanged = (name: string) => {
-        let department = departmentEditorState.department;
-        if (department === undefined)
-            department = { departmentId: newId(), count: 0 }
-        department!.name = name;
-        departmentEditorDispatch({
-            type: DepartmentEditorActionType.CHANGED,
-            payload: department
-        })
-    }
-
-    const onDepartmentEditorCommit = () => {
-        let department = departmentEditorState.department;
-        if (department === undefined)
-            return;
-
-        if (departmentEditorState.isCreate) {
-            DepartmentRepository.create(department)
-                .then(() => {
-                    enqueueSnackbar(t("feedback.department_created"));
-                    
-                }).catch(() => {
-                    enqueueSnackbar(t("feedback.department_create_error"));
-
-                }).finally(() => {
-                    departmentEditorDispatch({ type: DepartmentEditorActionType.DISMISS })
-                })
-        } else {
-            DepartmentRepository.update(department)
-                .then(() => {
-                    enqueueSnackbar(t("feedback.department_updated"));
-
-                }).catch(() => {
-                    enqueueSnackbar(t("feedback.department_update_error"))
-
-                }).finally(() => {
-                    departmentEditorDispatch({ type: DepartmentEditorActionType.DISMISS })
-                })
-        }
-    }
-
-    const onDepartmentItemRequestRemove = (department: Department) => {
-        departmentRemoveDispatch({
-            type: DepartmentRemoveActionType.REQUEST,
-            payload: department
-        })
-    }
-
-    const onDepartmentItemRemove = () => {
-        let department = departmentRemoveState.department;
-        if (department === undefined)
-            return;
-
-        DepartmentRepository.remove(department)
-            .then(() => {
-                enqueueSnackbar(t("feedback.department_removed"));
-
-            }).catch(() => {
-                enqueueSnackbar(t("feedback.department_remove_error"));
-
-            }).finally(() => {
-                departmentRemoveDispatch({
-                    type: DepartmentRemoveActionType.DISMISS
-                })
-            })
-    }
-
-    const onDismissDepartmentConfirmation = () => {
-        departmentRemoveDispatch({
-            type: DepartmentRemoveActionType.DISMISS
         })
     }
     
@@ -557,17 +494,7 @@ const UserScreen = (props: UserScreenProps) => {
                 onNext={getNextDepartments}
                 onDismiss={onDepartmentDismiss}
                 onAddItem={onDepartmentEditorView}
-                onSelectItem={onDepartmentItemSelected}
-                onDeleteItem={onDepartmentItemRequestRemove}/>
-
-            <DepartmentEditor
-                isOpen={departmentEditorState.isOpen}
-                name={departmentEditorState.department?.name}
-                manager={departmentEditorState.department?.manager}
-                onSubmit={onDepartmentEditorCommit}
-                onCancel={onDepartmentEditorDismiss}
-                onManagerSelect={onUserPickerView}
-                onNameChanged={onDepartmentEditorNameChanged}/>
+                onSelectItem={onDepartmentItemSelected}/>
 
             <DepartmentPicker
                 isOpen={isDepartmentPickerOpen}
@@ -579,22 +506,22 @@ const UserScreen = (props: UserScreenProps) => {
                 onNext={getNextDepartments}
                 onDismiss={onDepartmentPickerDismiss}
                 onAddItem={onDepartmentEditorView}
-                onSelectItem={onUserDepartmentSelected}
-                onDeleteItem={onDepartmentItemRequestRemove}/>
+                onSelectItem={onUserDepartmentSelected}/>
 
             <ConfirmationDialog
-                isOpen={departmentRemoveState.isRequest}
-                title="dialog.department_remove"
-                summary="dialog.department_remove_summary"
-                onDismiss={onDismissDepartmentConfirmation}
-                onConfirm={onDepartmentItemRemove}/>
-
+                isOpen={modifyState.isRequest}
+                title={modifyState.user?.disabled ? "dialog.user_enable" : "dialog.user_disable"}
+                summary={modifyState.user?.disabled ? "dialog.user_enable_summary" : "dialog.user_disable_summary"}
+                onDismiss={onUserRequestChangeStateDismiss}
+                onConfirm={onUserModify}/>
+            
             <ConfirmationDialog
                 isOpen={removeState.isRequest}
                 title="dialog.user_remove"
                 summary="dialog.user_remove_summary"
                 onDismiss={onUserRequestRemoveDismiss}
-                onConfirm={onUserRemove}/>
+                 onConfirm={onUserRemove}/>
+            
         </Box>
     )
 }

@@ -13,12 +13,12 @@ const resources = {
                 manage: "Manage",
                 account: "Account",
                 home: "Home",
-                scan: "Scan",
                 assets: "Assets",
                 users: "Users",
                 assignments: "Assignments",
                 categories: "Categories",
                 departments: "Departments",
+                requests: "Requests",
                 profile: "Profile",
                 settings: "Settings",
             },
@@ -78,7 +78,6 @@ const resources = {
                 continue: "Continue",
                 add: "Add",
                 save: "Save",
-                select: "Select",
                 previous: "Previous",
                 next: "Next",
                 close: "Close",
@@ -93,6 +92,7 @@ const resources = {
             },
             feedback: {
                 authenticating: "Authenticating",
+                saving: "Saving",
                 empty_specification_key: "You forgot to enter the key",
                 empty_specification_value: "You forgot to enter the value",
                 empty_category_name: "You forgot to enter the category name",
@@ -144,7 +144,12 @@ const resources = {
                 not_found_info: "Maybe you can head back home and find it there instead?"
             },
             info: {
-                user_editor_admin_permission: "Adding \"Administrative\" permission overrides lower permission rules."
+                user_editor_admin_permission: "Adding \"Administrative\" permission overrides lower permission rules.",
+                asset_should_have_assignment: "You'll need to add to to an assignment before it becames \"Operational\"",
+                asset_has_assignment: "This asset is assigned; there it's status cannot be changed othan than \"Operational\"",
+                asset_has_assignment_delete: "This asset is assigned, therefore it cannot be deleted.",
+                category_count_not_zero: "There are assets with this category",
+                department_count_not_zero: "There are users who are in this department"
             },
             settings:{
                 dark_theme: "Dark Theme",
@@ -164,6 +169,10 @@ const resources = {
                 category_remove_summary: "Do you want to remove this category? Once finished, this action cannot be undone.",
                 department_remove: "Remove department?",
                 department_remove_summary: "Do you want to remove this department? Once finished, this action cannot be undone.",
+                user_disable: "Disable this user account?",
+                user_disable_summary: "Are you sure you want to disable this user account? With proper permissions, you can always enable this account in the future.",
+                user_enable: "Enable this user account?",
+                user_enable_summary: "Are you sure you want to enable this user account? With proper permissions, you can always disable this account in the future.",
                 send_reset_link_title: "Send Password Reset Link",
                 send_reset_link_message: "If you forgot your password for this account, you can request to reset it requesting a reset email."
             },
@@ -171,6 +180,7 @@ const resources = {
                 full_name: "{{first}} {{last}}",
                 count: "Count: {{count}}",
             },
+            not_yet_returned: "Not Yet Returned",
             unknown: "Unknown",
             information: "Information",
             actions: "Actions",

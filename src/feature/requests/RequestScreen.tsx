@@ -9,9 +9,9 @@ import useMediaQuery from "@material-ui/core/useMediaQuery";
 import { useTheme, makeStyles } from "@material-ui/core/styles";
 
 import { usePermissions } from "../auth/AuthProvider";
+import { Request } from "./Request";
+import RequestList from "./RequestList";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
-import { Category } from "./Category";
-import CategoryList from "./CategoryList";
 
 const useStyles = makeStyles(() => ({
     root: {
@@ -24,24 +24,25 @@ const useStyles = makeStyles(() => ({
     }
 }));
 
-type CategoryPickerProps = {
+type RequestScreenProps = {
     isOpen: boolean,
-    categories: Category[],
+    requests: Request[],
     isLoading: boolean,
     hasPrevious: boolean,
     hasNext: boolean,
     onPreviousBatch: () => void,
     onNextBatch: () => void,
     onDismiss: () => void,
-    onSelectItem: (category: Category) => void
+    onSelectItem: (request: Request) => void,
+    onDeleteItem: (request: Request) => void,
 }
 
-const CategoryPicker = (props: CategoryPickerProps) => {
+const RequestScreen = (props: RequestScreenProps) => {
     const { t } = useTranslation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
+    const { isAdmin } = usePermissions();
     const classes = useStyles();
-    const { canRead } = usePermissions();
 
     return (
         <Dialog
@@ -50,17 +51,18 @@ const CategoryPicker = (props: CategoryPickerProps) => {
             maxWidth="xs"
             open={props.isOpen}
             onClose={props.onDismiss}>
-            <DialogTitle>{ t("category_select") }</DialogTitle>
+            <DialogTitle>{ t("navigation.requests") }</DialogTitle>
             <DialogContent dividers={true} className={classes.root}>
-                { canRead 
+                { isAdmin
                     ? !props.isLoading
-                        ? <CategoryList 
-                                hasPrevious={props.hasPrevious}
-                                hasNext={props.hasNext}
-                                onPrevious={props.onPreviousBatch}
-                                onNext={props.onNextBatch}
-                                categories={props.categories} 
-                                onItemSelect={props.onSelectItem}/>
+                        ? <RequestList 
+                            hasPrevious={props.hasPrevious}
+                            hasNext={props.hasNext}
+                            onPrevious={props.onPreviousBatch}
+                            onNext={props.onNextBatch}
+                            requests={props.requests} 
+                            onItemSelect={props.onSelectItem}
+                            onItemRemove={props.onDeleteItem}/>
                         : <LinearProgress/>
                     :  <ErrorNoPermissionState/>
                 }
@@ -72,4 +74,4 @@ const CategoryPicker = (props: CategoryPickerProps) => {
     )
 }
 
-export default CategoryPicker;
+export default RequestScreen;
