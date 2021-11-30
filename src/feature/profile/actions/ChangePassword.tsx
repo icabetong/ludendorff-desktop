@@ -1,93 +1,88 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
-import Button from "@material-ui/core/Button";
-import Container from "@material-ui/core/Container";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import TextField from "@material-ui/core/TextField";
-import { makeStyles } from "@material-ui/core/styles";
-
-const useStyles = makeStyles(() => ({
-    textField: {
-        margin: '0.6em 0',
-        width: '100%'
-    }
-}));
+import { useForm } from "react-hook-form";
+import {
+    Button,
+    Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField
+} from "@material-ui/core";
+import { useSnackbar } from "notistack";
+import firebase from "firebase/app";
+import { auth } from "../../../index";
 
 type ChangePasswordPromptProps = {
     isOpen: boolean,
-    oldPassword?: string,
-    newPassword?: string,
-    confirmationPassword?: string,
     onDismiss: () => void,
-    onSubmit: () => void,
-    onOldPasswordChanged: (oldPassword: string) => void,
-    onNewPasswordChanged: (newPassword: string) => void,
-    onConfirmationPasswordChanged: (confirmationPassword: string) => void 
 }
 
+type FormValues = {
+    oldPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+}
 const ChangePasswordPrompt = (props: ChangePasswordPromptProps) => {
     const { t } = useTranslation();
-    const classes = useStyles();
+    const { enqueueSnackbar } = useSnackbar();
+    const { register, handleSubmit, getValues, formState: { errors } } = useForm<FormValues>();
 
-    const onOldPasswordChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const onSubmit = async (data: FormValues) => {
+        const user = auth.currentUser;
 
+        if (user?.email) {
+            try {
+                const credential = firebase.auth.EmailAuthProvider.credential(user?.email, data.oldPassword)
+                await user.reauthenticateWithCredential(credential);
+
+                await user.updatePassword(data.newPassword)
+
+                enqueueSnackbar(t("feedback.changed_password_success"));
+            } catch (error) {
+                enqueueSnackbar(t("feedback.error_generic"));
+            }
+        }
     }
-
-    const onNewPasswordChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-
-    }
-
-    const onConfirmationPasswordChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-
-    }
-
-    const onPreDismiss = () => {
-        props.onDismiss();
-    }
-    const onPreSubmit = () => {}
 
     return (
         <Dialog
             open={props.isOpen}
             fullWidth={true}
             maxWidth="xs"
-            onClose={onPreDismiss}>
+            onClose={props.onDismiss}>
             <DialogTitle>{t("action.change_password")}</DialogTitle>
-            <DialogContent>
-                <Container disableGutters>
-                    <TextField
-                        autoFocus
-                        id="change-password-old"
-                        type="password"
-                        label={t("field.old_password")}
-                        value={props.oldPassword === undefined ? '' : props.oldPassword}
-                        onChange={onOldPasswordChanged}
-                        className={classes.textField}/>
+            <form onSubmit={handleSubmit(onSubmit)}>
+                <DialogContent>
+                    <Container disableGutters>
+                        <TextField
+                            autoFocus
+                            id="old-password"
+                            type="password"
+                            error={errors.oldPassword !== undefined}
+                            label={t("field.old_password")}
+                            {...register("oldPassword", { required: true })}/>
 
-                    <TextField
-                        id="change-password-new"
-                        type="password"
-                        label={t("field.new_password")}
-                        value={props.newPassword === undefined ? '' : props.newPassword}
-                        onChange={onNewPasswordChanged}
-                        className={classes.textField}/>
+                        <TextField
+                            id="new-password"
+                            type="password"
+                            label={t("field.new_password")}
+                            error={errors.newPassword !== undefined}
+                            {...register("newPassword", { required: true, validate: value => value === getValues('confirmPassword') })}/>
 
-                    <TextField
-                        id="change-password-confirm"
-                        type="password"
-                        label={t("field.confirmation_password")}
-                        value={props.confirmationPassword === undefined ? '' : props.confirmationPassword}
-                        onChange={onConfirmationPasswordChanged}
-                        className={classes.textField}/>
-                </Container>
-            </DialogContent>
-            <DialogActions>
-                <Button color="primary" onClick={onPreDismiss}>{t("button.cancel")}</Button>
-                <Button color="primary" onClick={onPreSubmit}>{t("button.continue")}</Button>
-            </DialogActions>
+                        <TextField
+                            id="confirm-password"
+                            type="password"
+                            error={errors.confirmPassword !== undefined}
+                            label={t("field.confirmation_password")}
+                            {...register("confirmPassword", { required: true, validate: value => value === getValues('newPassword') })}/>
+                    </Container>
+                </DialogContent>
+                <DialogActions>
+                    <Button color="primary" onClick={props.onDismiss}>{t("button.cancel")}</Button>
+                    <Button color="primary" type="submit">{t("button.continue")}</Button>
+                </DialogActions>
+            </form>
         </Dialog>
     );
 }

@@ -27,33 +27,18 @@ import { useSnackbar } from "notistack";
 import { PlusIcon } from "@heroicons/react/outline";
 
 import { Asset, Status, AssetRepository } from "./Asset";
-import { Category, minimize } from "../category/Category";
+import { Category, CategoryCore, minimize } from "../category/Category";
 import CategoryPicker from "../category/CategoryPicker";
 import QrCodeViewComponent from "../qrcode/QrCodeViewComponent";
 import { SpecificationEditor, FormValues as SpecFormValues } from "../specs/SpecificationEditor";
+import { ActionType, initialState, reducer } from "../specs/SpecificationEditorReducer";
 import SpecificationList from "../specs/SpecificationList";
 import { usePagination } from "../../shared/pagination";
 import { newId } from "../../shared/utils";
-import {
-    categoryCollection,
-    categoryName
-} from "../../shared/const";
+import { categoryCollection, categoryName } from "../../shared/const";
 import { firestore } from "../../index";
 
-import {
-    SpecificationEditorActionType,
-    specificationEditorInitialState,
-    specificationEditorReducer
-} from "../specs/SpecificationEditorReducer";
-
 const useStyles = makeStyles((theme) => ({
-    textField: {
-        width: '100%',
-        margin: '0.6em 0',
-        '& .MuiListItem-root': {
-            borderRadius: theme.spacing(1)
-        }
-    },
     icon: {
         width: '1em',
         height: '1em',
@@ -83,11 +68,11 @@ const AssetEditor = (props: AssetEditorProps) => {
     const { enqueueSnackbar } = useSnackbar();
     const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
     const { register, handleSubmit, formState: { errors }, control } = useForm<FormValues>();
-    const [category, setCategory] = useState<Category | undefined>(undefined);
-    const [specifications, setSpecifications] = useState<Map<string, string>>(props.asset?.specifications !== undefined ? props.asset?.specifications : new Map());
+    const [category, setCategory] = useState<CategoryCore | undefined>(props.asset?.category);
+    const [specifications, setSpecifications] = useState<Map<string, string>>(props.asset?.specifications !== undefined ? new Map(Object.entries(props.asset?.specifications)) : new Map());
     const [isPickerOpen, setPickerOpen] = useState(false);
     const [isQRCodeOpen, setQRCodeOpen] = useState(false);
-    const [state, dispatch] = useReducer(specificationEditorReducer, specificationEditorInitialState)
+    const [state, dispatch] = useReducer(reducer, initialState)
 
     const onPickerView = () => setPickerOpen(true);
     const onPickerDismiss = () => setPickerOpen(false);
@@ -95,10 +80,10 @@ const AssetEditor = (props: AssetEditorProps) => {
     const onQRCodeView = () => setQRCodeOpen(true);
     const onQRCodeDismiss = () => setQRCodeOpen(false);
 
-    const onEditorCreate = () => dispatch({ type: SpecificationEditorActionType.CREATE })
-    const onEditorDismiss = () => dispatch({ type: SpecificationEditorActionType.DISMISS })
+    const onEditorCreate = () => dispatch({ type: ActionType.CREATE })
+    const onEditorDismiss = () => dispatch({ type: ActionType.DISMISS })
     const onEditorUpdate = (specification: [string, string]) => dispatch({
-        type: SpecificationEditorActionType.UPDATE,
+        type: ActionType.UPDATE,
         payload: specification
     })
 
@@ -115,25 +100,34 @@ const AssetEditor = (props: AssetEditorProps) => {
             .orderBy(categoryName, "asc"), { limit: 15 }   
     );
 
+    let previousCategoryId: string | undefined = undefined;
     const onSubmit = (data: FormValues) => {
-        const asset = {
+        const asset: Asset = {
             ...data,
             assetId: props.asset === undefined ? newId() : props.asset?.assetId,
-            category: category !== undefined ? minimize(category) : undefined,
-            specifications: specifications
+            category: category !== undefined ? category : undefined,
+            specifications: Object.fromEntries(specifications)
         }
  
         if (props.isCreate) {
             AssetRepository.create(asset)
                 .then(() => enqueueSnackbar(t("feedback.asset_created")))
-                .catch(() => enqueueSnackbar(t("asset_create_error")))
+                .catch(() => enqueueSnackbar(t("feedback.asset_create_error")))
                 .finally(props.onDismiss)
         } else {
-            AssetRepository.update(asset)
-                .then(() => enqueueSnackbar(t("asset_updated")))
-                .catch(() => enqueueSnackbar(t("asset_update_error")))
+            AssetRepository.update(asset, previousCategoryId)
+                .then(() => enqueueSnackbar(t("feedback.asset_updated")))
+                .catch(() => enqueueSnackbar(t("feedback.asset_update_error")))
                 .finally(props.onDismiss)
         }
+    }
+
+    const onCategoryChanged = (newCategory: Category) => {
+        if (props.asset?.category !== undefined && props.asset?.category?.categoryId !== newCategory.categoryId) 
+            previousCategoryId = props.asset?.category?.categoryId;
+        
+        setCategory(minimize(newCategory));
+        onPickerDismiss();
     }
 
     const onSpecificationCommit = (specification: SpecFormValues) => {
@@ -195,10 +189,9 @@ const AssetEditor = (props: AssetEditorProps) => {
                                         error={errors.assetName !== undefined}
                                         helperText={errors.assetName?.message !== undefined ? t(errors.assetName.message) : undefined}
                                         defaultValue={props.asset !== undefined ? props.asset.assetName : ""}
-                                        className={classes.textField}
                                         {...register("assetName", { required: "feedback.empty_asset_name" })}/>
 
-                                    <FormControl component="fieldset" className={classes.textField}>
+                                    <FormControl component="fieldset" fullWidth>
                                         <FormLabel component="legend">
                                             <Typography variant="body2">{ t("field.status") }</Typography>
                                         </FormLabel>
@@ -240,13 +233,13 @@ const AssetEditor = (props: AssetEditorProps) => {
                                             )}/>
                                     </FormControl>
 
-                                    <FormControl component="fieldset" className={classes.textField}>
+                                    <FormControl component="fieldset" fullWidth>
                                         <FormLabel component="legend">
                                             <Typography variant="body2">{ t("field.category") }</Typography>
                                         </FormLabel>
                                         <ListItem button onClick={onPickerView}>
                                             <Typography variant="body2">
-                                                { props.asset?.category?.categoryName !== undefined ? props.asset?.category?.categoryName : t("not_set")  }
+                                                { category?.categoryName !== undefined ? category?.categoryName : t("not_set")  }
                                             </Typography>
                                         </ListItem>
                                     </FormControl>
@@ -261,7 +254,7 @@ const AssetEditor = (props: AssetEditorProps) => {
                                             specifications={specifications} 
                                             onItemSelected={onEditorUpdate}/>
                                         <Button
-                                            className={classes.textField}
+                                            fullWidth
                                             startIcon={<PlusIcon className={classes.icon}/>}
                                             onClick={onEditorCreate}>
                                                 { t("add") }
@@ -288,7 +281,7 @@ const AssetEditor = (props: AssetEditorProps) => {
                     </DialogActions>
                 </form>
             </Dialog>
-            {
+            { state.isOpen &&
                 <SpecificationEditor
                     isOpen={state.isOpen} 
                     isCreate={state.isCreate}
@@ -306,7 +299,7 @@ const AssetEditor = (props: AssetEditorProps) => {
                     onPreviousBatch={getPreviousCategories}
                     onNextBatch={getNextCategories}
                     onDismiss={onPickerDismiss}
-                    onSelectItem={setCategory}/>
+                    onSelectItem={onCategoryChanged}/>
             }
             { isQRCodeOpen && props.asset !== undefined &&
                 <QrCodeViewComponent

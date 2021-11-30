@@ -1,12 +1,15 @@
 import { useTranslation } from "react-i18next";
-import Button from "@material-ui/core/Button";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import LinearProgress from "@material-ui/core/LinearProgress";
-import useMediaQuery from "@material-ui/core/useMediaQuery";
-import { useTheme, makeStyles } from "@material-ui/core/styles";
+import {
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    LinearProgress,
+    useMediaQuery,
+    useTheme,
+    makeStyles
+} from "@material-ui/core";
 
 import { usePermissions } from "../auth/AuthProvider";
 import { Department } from "./Department";
@@ -33,8 +36,7 @@ type DepartmentPickerProps = {
     hasNext: boolean,
     onPrevious: () => void,
     onNext: () => void,
-    onDismiss: () => void,
-    onAddItem: () => void,
+    onDismiss: () => void
     onSelectItem: (department: Department) => void
 }
 
@@ -43,7 +45,7 @@ const DepartmentPicker = (props: DepartmentPickerProps) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
     const classes = useStyles();
-    const { canRead, canWrite } = usePermissions();
+    const { canRead } = usePermissions();
 
     return (
         <Dialog
@@ -68,8 +70,6 @@ const DepartmentPicker = (props: DepartmentPickerProps) => {
                 }
             </DialogContent>
             <DialogActions>
-                <Button color="primary" onClick={() => props.onAddItem()} disabled={!canWrite}>{ t("button.add") }</Button>
-                <div style={{flex: '1 0 0'}}></div>
                 <Button color="primary" onClick={() => props.onDismiss()}>{ t("button.close") }</Button>
             </DialogActions>
         </Dialog>

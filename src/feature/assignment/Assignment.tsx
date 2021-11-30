@@ -15,8 +15,8 @@ export type Assignment = {
     assignmentId: string
     asset?: AssetCore
     user?: UserCore
-    dateAssigned?: Timestamp
-    dateReturned?: Timestamp
+    dateAssigned?: Timestamp | undefined
+    dateReturned?: Timestamp | undefined
     location?: string
     remarks?: string
 }
@@ -42,6 +42,7 @@ export class AssignmentRepository {
             title: "notification_assigned_title",
             body: "notification_assigned_body",
             payload: assignment.assignmentId,
+            deviceToken: assignment.user?.deviceToken,
             senderId: auth.currentUser?.uid,
             receiverId: assignment.user?.userId,
             extras: {
@@ -57,7 +58,8 @@ export class AssignmentRepository {
         batch.set(firestore.collection(assignmentCollection)
             .doc(assignment.assignmentId), assignment);
 
-        if (assignment.asset?.assetId !== previousAssetId) {
+        if (previousAssetId !== undefined && assignment.asset?.assetId !== previousAssetId) {
+            console.log("changed")
             batch.update(firestore.collection(assetCollection)
                 .doc(previousAssetId), assetStatus, Status.IDLE);
 
@@ -77,6 +79,7 @@ export class AssignmentRepository {
             title: "notification_assigned_title",
             body: "notification_assigned_body",
             payload: assignment.assignmentId,
+            deviceToken: assignment.user?.deviceToken,
             senderId: auth.currentUser?.uid,
             receiverId: assignment.user?.userId,
             extras: {
@@ -94,7 +97,7 @@ export class AssignmentRepository {
         
         if (assignment.asset?.assetId !== undefined)
             batch.update(firestore.collection(assetCollection)
-                .doc(assignment.assignmentId), assetStatus, Status.IDLE);
+                .doc(assignment.asset?.assetId), assetStatus, Status.IDLE);
 
         await batch.commit();
     }

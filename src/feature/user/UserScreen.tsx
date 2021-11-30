@@ -1,4 +1,4 @@
-import { useState, useReducer, lazy } from "react";
+import { useState, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import Box from "@material-ui/core/Box";
 import Hidden from "@material-ui/core/Hidden";
@@ -27,61 +27,32 @@ import EmptyStateComponent from "../state/EmptyStates";
 import { usePermissions } from "../auth/AuthProvider";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import { usePreferences } from "../settings/Preference";
-import { User, minimize, UserRepository } from "./User";
+import { User, UserRepository } from "./User";
 import UserList from "./UserList";
 
 import { firestore } from "../../index";
 import { usePagination } from "../../shared/pagination";
-import { newId } from "../../shared/utils";
-
-import { 
-    Department,
-    minimize as minimizeDepartment 
-} from "../department/Department";
 
 import {
-    UserEditorActionType,
-    userEditorInitialState,
-    userEditorReducer
+    ActionType,
+    initialState,
+    reducer
 } from "./UserEditorReducer";
 
 import {
-    UserModifyActionType,
-    userModifyInitialState,
-    userModifyReducer
-} from "./UserModifyReducer";
-
-import {
-    UserRemoveActionType,
-    userRemoveInitialState,
-    userRemoveReducer
-} from "./UserRemoveReducer";
-
-import {
-    DepartmentEditorActionType,
-    departmentEditorInitialState,
-    departmentEditorReducer
-} from "../department/DepartmentEditorReducer";
-
-import {
     userCollection,
-    departmentCollection,
     userId,
     firstName,
     lastName,
     email,
     position,
     department,
-    departmentName
 } from "../../shared/const";
 
-import ConfirmationDialog from "../shared/ItemRemoveDialog";
-
-const UserEditor = lazy(() => import("./UserEditor"));
-const UserPicker = lazy(() => import("./UserPicker"));
-
-const DepartmentScreen = lazy(() => import("../department/DepartmentScreen"));
-const DepartmentPicker = lazy(() => import("../department/DepartmentPicker"));
+import UserEditor from "./UserEditor";
+import UserSearchScreen from "./UserSearchScreen";
+import DepartmentScreen from "../department/DepartmentScreen";
+import ConfirmationDialog from "../shared/ConfirmationDialog";
 
 const useStyles = makeStyles(() => ({
     root: {
@@ -141,7 +112,7 @@ const UserScreen = (props: UserScreenProps) => {
                             <HeroIconButton
                                 icon={params.row.disabled ? CheckIcon : BanIcon}
                                 aria-label={params.row.disabled ? t("button.enable") : t("button.disable")}
-                                onClick={() => onUserRequestChangeState(user)}/>
+                                onClick={() => onModificationInvoke(user)}/>
                         </span>
                     </Tooltip>
                 )
@@ -158,7 +129,7 @@ const UserScreen = (props: UserScreenProps) => {
                     <HeroIconButton 
                         icon={TrashIcon}
                         aria-label={t("delete")}
-                        onClick={() => onUserRequestRemove(params.row as User)}/>
+                        onClick={() => onRemoveInvoke(params.row as User)}/>
                 )
             }
         }
@@ -177,226 +148,54 @@ const UserScreen = (props: UserScreenProps) => {
             .orderBy(lastName, "asc"), { limit: 15 }
     )
 
-    const [editorState, editorDispatch] = useReducer(userEditorReducer, userEditorInitialState);
-    const [isPickerOpen, setPickerOpen] = useState(false);
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const [userModify, setUserModify] = useState<User | undefined>(undefined);
+    const [userRemove, setUserRemove] = useState<User | undefined>(undefined);
 
-    const onUserPickerDismiss = () => { setPickerOpen(false) }
+    const onModificationInvoke = (user: User) => setUserModify(user);
+    const onModificationDismiss = () => setUserModify(undefined);
+    const onModificationConfirmed = () => {
+        if (userModify !== undefined) {
+            UserRepository.modify(userModify.userId, !userModify.disabled)
+                .then(() => enqueueSnackbar(t("feedback.user_modified")))
+                .catch(() => enqueueSnackbar(t("feedback.user_modify_error")))
+                .finally(onModificationDismiss)
+        }
+    }
+
+    const onRemoveInvoke = (user: User) => setUserRemove(user);
+    const onRemoveDismiss = () => setUserRemove(undefined);
+    const onRemoveConfirmed = () => {
+        if (userRemove !== undefined) {
+            UserRepository.remove(userRemove)
+                .then(() => enqueueSnackbar(t("feedback.user_removed")))
+                .catch(() => enqueueSnackbar(t("feedback.user_remove_error")))
+                .finally(onRemoveDismiss)
+        }
+    }
 
     const onDataGridRowDoubleClick = (params: GridRowParams) => {
         onUserSelected(params.row as User)
     }
 
-    const onUserEditorView = () => {
-        editorDispatch({ 
-            type: UserEditorActionType.CREATE 
-        })
-    }
-
-    const onUserEditorDismiss = () => {
-        editorDispatch({
-            type: UserEditorActionType.DISMISS
-        })
-    }
-
-    const onUserEditorLastNameChanged = (lastName: string) => {
-        let user = editorState.user;
-        if (user === undefined)
-            user = { userId: newId(), permissions: [], disabled: false }
-        user!.lastName = lastName;
-        editorDispatch({
-            type: UserEditorActionType.CHANGED,
-            payload: user
-        });
-    }
-
-    const onUserEditorFirstNameChanged = (firstName: string) => {
-        let user = editorState.user;
-        if (user === undefined)
-            user = { userId: newId(), permissions: [], disabled: false }
-        user!.firstName = firstName;
-        editorDispatch({
-            type: UserEditorActionType.CHANGED,
-            payload: user
-        });
-    }
-
-    const onUserEditorEmailAddressChanged = (email: string) => {
-        let user = editorState.user;
-        if (user === undefined)
-            user = { userId: newId(), permissions: [], disabled: false }
-        user!.email = email;
-        editorDispatch({
-            type: UserEditorActionType.CHANGED,
-            payload: user
-        })
-    }
-
-    const onUserEditorPermissionsChanged = (permissions: number[]) => {
-        let user = editorState.user;
-        if (user === undefined)
-            user = { userId: newId(), permissions: [], disabled: false }
-        user!.permissions = permissions;
-        editorDispatch({
-            type: UserEditorActionType.CHANGED,
-            payload: user
-        })
-    }
-
-    const onUserEditorPositionChanged = (position: string) => {
-        let user = editorState.user;
-        if (user === undefined)
-            user = { userId: newId(), permissions: [], disabled: false }
-        user!.position = position;
-        editorDispatch({
-            type: UserEditorActionType.CHANGED,
-            payload: user
-        })
-    }
-
-    const onUserDepartmentSelected = (department: Department) => {
-        let user = editorState.user;
-        if (user === undefined)
-            user = { userId: newId(), permissions: [], disabled: false }
-        user!.department = minimizeDepartment(department);
-        setDepartmentPickerOpen(false);
-        editorDispatch({
-            type: UserEditorActionType.CHANGED,
-            payload: user
-        })
-    }
-
-    const onUserEditorCommit = () => {
-        let user = editorState.user;
-        if (user === undefined)
-            return;
-
-        if (editorState.isCreate) {
-            UserRepository.create(user)
-                .then(() => {
-                    enqueueSnackbar(t("feedback.user_created"));
-                }).catch(() => {
-                    enqueueSnackbar(t("feedback.user_create_error"));
-                }).finally(() => {
-                    editorDispatch({ type: UserEditorActionType.DISMISS })
-                })
-        } else {
-            UserRepository.update(user)
-                .then(() => {
-                    enqueueSnackbar(t("feedback.user_updated"))
-                }).catch(() => {
-                    enqueueSnackbar(t("feedback.user_update_error"))
-                }).finally(() => {
-                    editorDispatch({ type: UserEditorActionType.DISMISS })
-                })
-        }
-    }
-
-    const [removeState, removeDispatch] = useReducer(userRemoveReducer, userRemoveInitialState);
-
-    const onUserRequestRemove = (user: User) => {
-        removeDispatch({
-            type: UserRemoveActionType.REQUEST,
-            payload: user
-        })
-    }
-
-    const onUserRequestRemoveDismiss = () => {
-        removeDispatch({
-            type: UserRemoveActionType.DISMISS
-        })
-    }
-
-    const onUserRemove = () => {
-        let user = removeState.user;
-        if (user === undefined)
-            return;
-
-        UserRepository.remove(user)
-            .then(() => {
-                enqueueSnackbar(t("feedback.user_removed"));
-            }).catch(() => {
-                enqueueSnackbar(t("feedback.user_remove_error"));
-            }).finally(() => {
-                removeDispatch({
-                    type: UserRemoveActionType.DISMISS
-                })
-            })
-    }
-
-    const [modifyState, modifyDispatch] = useReducer(userModifyReducer, userModifyInitialState);
-
-    const onUserRequestChangeState = (user: User) => {
-        modifyDispatch({
-            type: UserModifyActionType.REQUEST,
-            payload: user
-        })
-    }
-
-    const onUserRequestChangeStateDismiss = () => {
-        modifyDispatch({
-            type: UserModifyActionType.DISMISS
-        })
-    }
-
-    const onUserModify = () => {
-
-    }
+    const onUserEditorView = () => dispatch({ type: ActionType.CREATE })
+    const onUserEditorDismiss = () => dispatch({ type: ActionType.DISMISS })
 
     const onUserSelected = (user: User) => {
-        editorDispatch({
-            type: UserEditorActionType.UPDATE,
+        dispatch({
+            type: ActionType.UPDATE,
             payload: user
         })
     }
 
-    const {
-        items: departments,
-        isLoading: isDepartmentsLoading,
-        isStart: atDepartmentStart,
-        isEnd: atDepartmentEnd,
-        getPrev: getPreviousDepartments,
-        getNext: getNextDepartments,
-    } = usePagination<Department>(
-        firestore
-            .collection(departmentCollection)
-            .orderBy(departmentName, "asc"), { limit: 15 } 
-    );
+    const [search, setSearch] = useState<boolean>(false);
+    const onSearchInvoke = () => setSearch(true);
+    const onSearchDismiss = () => setSearch(false);
 
     const [isDepartmentOpen, setDepartmentOpen] = useState(false);
-    const [isDepartmentPickerOpen, setDepartmentPickerOpen] = useState(false);
-    
-    const [departmentEditorState, departmentEditorDispatch] = useReducer(departmentEditorReducer, departmentEditorInitialState);
 
     const onDepartmentView = () => { setDepartmentOpen(true) }
     const onDepartmentDismiss = () => { setDepartmentOpen(false) }
-
-    const onDepartmentPickerView = () => { setDepartmentPickerOpen(true) }
-    const onDepartmentPickerDismiss = () => { setDepartmentPickerOpen(false) }
-
-    const onDepartmentItemSelected = (department: Department) => {
-        departmentEditorDispatch({
-            type: DepartmentEditorActionType.UPDATE,
-            payload: department
-        })
-    }
-
-    const onDepartmentManagerSelected = (user: User) => {
-        let department = departmentEditorState.department;
-        if (department === undefined)
-            department = { departmentId: newId(), count: 0 }
-        department!.manager = minimize(user);
-        setPickerOpen(false);
-        departmentEditorDispatch({
-            type: DepartmentEditorActionType.CHANGED,
-            payload: department,
-        })
-    }
-
-    const onDepartmentEditorView = () => {
-        departmentEditorDispatch({
-            type: DepartmentEditorActionType.CREATE
-        })
-    }
     
     return (
         <Box className={classes.root}>
@@ -410,6 +209,7 @@ const UserScreen = (props: UserScreenProps) => {
                 }
                 buttonIcon={PlusIcon}
                 buttonOnClick={onUserEditorView}
+                onSearch={onSearchInvoke}
                 menuItems={[
                     <MenuItem key={0} onClick={onDepartmentView}>{ t("navigation.departments") }</MenuItem>
                 ]}
@@ -454,74 +254,38 @@ const UserScreen = (props: UserScreenProps) => {
                 </>
                 : <ErrorNoPermissionState/>
             }
-
-            <UserEditor
-                isOpen={editorState.isOpen}
-                id={editorState.user?.userId}
-                lastName={editorState.user?.lastName}
-                firstName={editorState.user?.firstName}
-                email={editorState.user?.email}
-                permissions={editorState.user?.permissions === undefined ? [] : editorState.user?.permissions}
-                position={editorState.user?.position}
-                department={editorState.user?.department}
-                onCancel={onUserEditorDismiss}
-                onSubmit={onUserEditorCommit}
-                onDepartmentSelect={onDepartmentPickerView}
-                onLastNameChanged={onUserEditorLastNameChanged}
-                onFirstNameChanged={onUserEditorFirstNameChanged}
-                onEmailChanged={onUserEditorEmailAddressChanged}
-                onPermissionsChanged={onUserEditorPermissionsChanged}
-                onPositionChanged={onUserEditorPositionChanged}/>
-
-            <UserPicker
-                isOpen={isPickerOpen}
-                users={users}
-                isLoading={isUsersLoading}
-                hasPrevious={atUserStart}
-                hasNext={atUserEnd}
-                onPrevious={getPreviousUsers}
-                onNext={getNextUsers}
-                onDismiss={onUserPickerDismiss}
-                onSelectItem={onDepartmentManagerSelected}/>
-
+            { state.isOpen &&
+                <UserEditor
+                    isOpen={state.isOpen}
+                    isCreate={state.isCreate}
+                    user={state.user}
+                    onDismiss={onUserEditorDismiss}/>
+            }
+            { search &&
+                <UserSearchScreen
+                    isOpen={search}
+                    onDismiss={onSearchDismiss}
+                    onEditorInvoke={onUserSelected}/>
+            }
+            { userModify &&
+                <ConfirmationDialog
+                    isOpen={userModify !== undefined}
+                    title={userModify?.disabled ? "dialog.user_enable" : "dialog.user_disable"}
+                    summary={userModify?.disabled ? "dialog.user_enable_summary" : "dialog.user_disable_summary"}
+                    onDismiss={onModificationDismiss}
+                    onConfirm={onModificationConfirmed}/>
+            }
+            { userRemove &&
+                <ConfirmationDialog
+                    isOpen={userRemove !== undefined}
+                    title="dialog.user_remove"
+                    summary="dialog.user_remove_summary"
+                    onDismiss={onRemoveDismiss}
+                    onConfirm={onRemoveConfirmed}/>
+            }
             <DepartmentScreen
                 isOpen={isDepartmentOpen}
-                departments={departments}
-                isLoading={isDepartmentsLoading}
-                hasPrevious={atDepartmentStart}
-                hasNext={atDepartmentEnd}
-                onPrevious={getPreviousDepartments}
-                onNext={getNextDepartments}
-                onDismiss={onDepartmentDismiss}
-                onAddItem={onDepartmentEditorView}
-                onSelectItem={onDepartmentItemSelected}/>
-
-            <DepartmentPicker
-                isOpen={isDepartmentPickerOpen}
-                departments={departments}
-                isLoading={isDepartmentsLoading}
-                hasPrevious={atDepartmentStart}
-                hasNext={atDepartmentEnd}
-                onPrevious={getPreviousDepartments}
-                onNext={getNextDepartments}
-                onDismiss={onDepartmentPickerDismiss}
-                onAddItem={onDepartmentEditorView}
-                onSelectItem={onUserDepartmentSelected}/>
-
-            <ConfirmationDialog
-                isOpen={modifyState.isRequest}
-                title={modifyState.user?.disabled ? "dialog.user_enable" : "dialog.user_disable"}
-                summary={modifyState.user?.disabled ? "dialog.user_enable_summary" : "dialog.user_disable_summary"}
-                onDismiss={onUserRequestChangeStateDismiss}
-                onConfirm={onUserModify}/>
-            
-            <ConfirmationDialog
-                isOpen={removeState.isRequest}
-                title="dialog.user_remove"
-                summary="dialog.user_remove_summary"
-                onDismiss={onUserRequestRemoveDismiss}
-                 onConfirm={onUserRemove}/>
-            
+                onDismiss={onDepartmentDismiss}/>
         </Box>
     )
 }

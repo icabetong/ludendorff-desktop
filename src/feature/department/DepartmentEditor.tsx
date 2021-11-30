@@ -12,8 +12,7 @@ import {
     FormLabel,
     ListItem,
     TextField,
-    Typography,
-    makeStyles
+    Typography
 } from "@material-ui/core";
 import { useSnackbar } from "notistack";
 import { Department, DepartmentRepository } from "./Department";
@@ -26,16 +25,6 @@ import {
 } from "../../shared/const";
 import { newId } from "../../shared/utils";
 import { firestore } from "../..";
-
-const useStyles = makeStyles((theme) => ({
-    textField: {
-        margin: '0.6em 0',
-        width: '100%',
-        '& .MuiListItem-root': {
-            borderRadius: theme.spacing(1)
-        }
-    }
-}));
 
 type DepartmentEditorProps = {
     isOpen: boolean,
@@ -50,9 +39,9 @@ type FormValues = {
 
 const DepartmentEditor = (props: DepartmentEditorProps) => {
     const { t } = useTranslation();
-    const classes = useStyles();
     const { enqueueSnackbar } = useSnackbar();
     const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
+    const [isWritePending, setWritePending] = useState<boolean>(false);
     const [isPickerOpen, setPickerOpen] = useState(false);
     const [manager, setManager] = useState<UserCore | undefined>(props.department?.manager);
 
@@ -60,6 +49,7 @@ const DepartmentEditor = (props: DepartmentEditorProps) => {
     const onPickerDismiss = () => setPickerOpen(false);
 
     const onSubmit = (data: FormValues) => {
+        setWritePending(true);
         const department: Department = {
             departmentId: props.department?.departmentId !== undefined ? props.department?.departmentId : newId(),
             manager: manager,
@@ -71,12 +61,18 @@ const DepartmentEditor = (props: DepartmentEditorProps) => {
             DepartmentRepository.create(department)
                 .then(() => enqueueSnackbar(t("feedback.department_created")))
                 .catch(() => enqueueSnackbar(t("feedback.department_create_error")))
-                .finally(props.onDismiss)
+                .finally(() => {
+                    setWritePending(false);
+                    props.onDismiss();
+                })
         } else {
             DepartmentRepository.update(department)
                 .then(() => enqueueSnackbar(t("feedback.department_updated")))
                 .catch(() => enqueueSnackbar(t("feedback.department_update_error")))
-                .finally(props.onDismiss)
+                .finally(() => {
+                    setWritePending(false);
+                    props.onDismiss();
+                })
         }
     }
 
@@ -109,6 +105,7 @@ const DepartmentEditor = (props: DepartmentEditorProps) => {
                     <DialogContent>
                         <Container disableGutters>
                             <TextField
+                                disabled={isWritePending}
                                 autoFocus
                                 id="name"
                                 type="text"
@@ -116,13 +113,12 @@ const DepartmentEditor = (props: DepartmentEditorProps) => {
                                 defaultValue={props.department !== undefined ? props.department?.name : ""}
                                 error={errors.name !== undefined}
                                 helperText={errors.name?.message !== undefined ? t("feedback.empty_department_name") : undefined}
-                                className={classes.textField}
                                 {...register("name", { required: "feedback.empty_department_name" })}/>
-                            <FormControl component="fieldset" className={classes.textField}>
+                            <FormControl component="fieldset" fullWidth>
                                     <FormLabel component="legend">
                                         <Typography variant="body2">{ t("field.manager") }</Typography>
                                     </FormLabel>
-                                    <ListItem button onClick={onPickerView}>
+                                    <ListItem button onClick={onPickerView} disabled={isWritePending}>
                                         <Typography variant="body2">
                                             { manager !== undefined ? manager?.name : t("not_set")  }
                                         </Typography>
@@ -131,8 +127,18 @@ const DepartmentEditor = (props: DepartmentEditorProps) => {
                         </Container>
                     </DialogContent>
                     <DialogActions>
-                        <Button color="primary" onClick={props.onDismiss}>{ t("button.cancel") }</Button>
-                        <Button color="primary" type="submit">{ t("button.save") }</Button>
+                        <Button 
+                            color="primary" 
+                            onClick={props.onDismiss}
+                            disabled={isWritePending}>
+                            { t("button.cancel")}
+                        </Button>
+                        <Button 
+                            color="primary" 
+                            type="submit"
+                            disabled={isWritePending}>
+                            { t("button.save") }
+                        </Button>
                     </DialogActions>
                 </form>
             </Dialog>

@@ -1,35 +1,41 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Button from "@material-ui/core/Button";
-import Card from "@material-ui/core/Card";
-import Checkbox from "@material-ui/core/Checkbox";
-import Container from "@material-ui/core/Container";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import FormControl from "@material-ui/core/FormControl";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import FormGroup from "@material-ui/core/FormGroup";
-import FormLabel from "@material-ui/core/FormLabel";
-import Grid from "@material-ui/core/Grid";
-import ListItem from "@material-ui/core/ListItem";
-import TextField from "@material-ui/core/TextField";
-import Typography from "@material-ui/core/Typography";
-import useMediaQuery from "@material-ui/core/useMediaQuery";
-import { makeStyles, useTheme } from "@material-ui/core/styles";
+import { Controller, useForm } from "react-hook-form";
+import {
+    Button,
+    Card,
+    Checkbox,
+    Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    FormControl,
+    FormControlLabel,
+    FormGroup,
+    FormLabel,
+    Grid,
+    ListItem,
+    TextField,
+    Typography,
+    useMediaQuery,
+    useTheme,
+    makeStyles
+} from "@material-ui/core";
+import { useSnackbar } from "notistack";
 
-import { Permission } from "./User";
-import { DepartmentCore } from "../department/Department";
+import { User, Permission, UserRepository } from "./User";
+import { Department, DepartmentCore, minimize } from "../department/Department";
+import DepartmentPicker from "../department/DepartmentPicker";
+import { usePagination } from "../../shared/pagination";
+import {
+    departmentCollection,
+    departmentName
+} from "../../shared/const";
+import { newId } from "../../shared/utils";
+import { firestore } from "../..";
 
 const useStyles = makeStyles((theme) => ({
-    textField: {
-        width: '100%',
-        margin: '0.6em 0',
-        '& .MuiListItem-root': {
-            borderRadius: theme.spacing(1)
-        }
-    },
     icon: {
         width: '1em',
         height: '1em',
@@ -45,255 +51,263 @@ const useStyles = makeStyles((theme) => ({
 
 type UserEditorProps = {
     isOpen: boolean,
-    id?: string,
-    lastName?: string,
-    firstName?: string,
-    email?: string,
-    permissions: number[],
-    position?: string,
-    department?: DepartmentCore,
-    onCancel: () => void,
-    onSubmit: () => void,
-    onDepartmentSelect: () => void,
-    onLastNameChanged: (lastName: string) => void,
-    onFirstNameChanged: (firstName: string) => void,
-    onEmailChanged: (email: string) => void,
-    onPermissionsChanged: (permissions: number[]) => void,
-    onPositionChanged: (position: string) => void
+    isCreate: boolean,
+    user?: User,
+    onDismiss: () => void,
+}
+
+type FormValues = {
+    lastName: string,
+    firstName: string,
+    email: string,
+    position: string,
+    permissionRead: boolean,
+    permissionWrite: boolean,
+    permissionDelete: boolean,
+    permissionManageUsers: boolean,
+    permissionAdmin: boolean
 }
 
 const UserEditor = (props: UserEditorProps) => {
     const { t } = useTranslation();
     const classes = useStyles();
     const theme = useTheme();
+    const { enqueueSnackbar } = useSnackbar();
     const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
+    const { register, handleSubmit, formState: { errors }, control } = useForm<FormValues>();
+    const [isWritePending, setWritePending] = useState<boolean>(false);
+    const [isPickerOpen, setPickerOpen] = useState(false);
+    const [department, setDepartment] = useState<DepartmentCore | undefined>(props.user?.department)
 
-    const [firstNameError, setFirstNameError] = useState(false);
-    const [lastNameError, setLastNameError] = useState(false);
-    const [emailError, setEmailError] = useState(false);
-    const [positionError, setPositionError] = useState(false);
+    const onSubmit = (data: FormValues) => {
+        setWritePending(true);
+        const permissions = [];
+        if (data.permissionRead) permissions.push(Permission.READ)
+        if (data.permissionWrite) permissions.push(Permission.WRITE)
+        if (data.permissionDelete) permissions.push(Permission.DELETE)
+        if (data.permissionManageUsers) permissions.push(Permission.MANAGE_USERS)
+        if (data.permissionAdmin) permissions.push(Permission.ADMINISTRATIVE)
 
-    const onLastNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const lastName = event.target.value;
-        if (lastName !== '' && lastNameError)
-            setLastNameError(false);
-
-        props.onLastNameChanged(lastName);
-    }
-
-    const onFirstNameChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const firstName = event.target.value;
-        if (firstName !== '' && firstNameError)
-            setFirstNameError(false);
-
-        props.onFirstNameChanged(firstName);
-    }
-
-    const onEmailAddressChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const email = event.target.value;
-        if (email !== '' && emailError)
-            setEmailError(false);
-
-        props.onEmailChanged(email);
-    }
-
-    const onPositionChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const position = event.target.value;
-        if (position !== '' && positionError)
-            setPositionError(false);
-
-        props.onPositionChanged(position);
-    }
-
-    const onPreSubmit = () => {
-        if (props.lastName === undefined) {
-            setLastNameError(true);
-            return;
+        const user: User = {
+            userId: props.user !== undefined ? props.user?.userId : newId(),
+            department: department,
+            disabled: props.user !== undefined ? props.user?.disabled : false,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            position: data.position,
+            permissions: permissions
         }
 
-        if (props.firstName === undefined) {
-            setFirstNameError(true);
-            return;
+        if (props.isCreate) {
+            UserRepository.create(user)
+                .then(() => enqueueSnackbar(t("feedback.user_created")))
+                .catch(() => enqueueSnackbar(t("feedback.asset_create_error")))
+                .finally(() => {
+                    setWritePending(false);
+                    props.onDismiss();
+                })
+        } else {
+            UserRepository.update(user)
+                .then(() => enqueueSnackbar(t("feedback.user_updated")))
+                .catch(() => enqueueSnackbar(t("feedback.asset_update_error")))
+                .finally(() => {
+                    setWritePending(false);
+                    props.onDismiss();
+                })
         }
-
-        if (props.email === undefined) {
-            setEmailError(true);
-            return;
-        }
-
-        if (props.position === undefined) {
-            setPositionError(true);
-            return;
-        }
-
-        props.onSubmit();
     }
 
-    const hasPermission = (permissions: number[], permission: Permission) => {
-        return permissions.includes(permission);
+    const onPickerView = () => setPickerOpen(true);
+    const onPickerDismiss = () => setPickerOpen(false);
+
+    const onDepartmentSelected = (department: Department) => {
+        setDepartment(minimize(department))
+        onPickerDismiss()
     }
 
-    const onPermissionsChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const isChecked = event.target.checked;
-        let permissions = props.permissions;
-        switch(event.target.name) {
-            case "editor-read": 
-                if (isChecked)
-                    permissions.push(Permission.READ);
-                else permissions = permissions.filter((v: number) => v !== Permission.READ);
-                break;
-            case "editor-write":
-                if (isChecked)
-                    permissions.push(Permission.WRITE);
-                else permissions = permissions.filter((v: number) => v !== Permission.WRITE);
-                break;
-            case "editor-delete":
-                if (isChecked)
-                    permissions.push(Permission.DELETE);
-                else permissions = permissions.filter((v: number) => v !== Permission.DELETE);
-                break;
-            case "editor-manage-users":
-                if (isChecked)
-                    permissions.push(Permission.MANAGE_USERS);
-                else permissions = permissions.filter((v: number) => v !== Permission.MANAGE_USERS);
-                break;
-            case "editor-administrative":
-                if (isChecked)
-                    permissions.push(Permission.ADMINISTRATIVE);
-                else permissions = permissions.filter((v: number) => v !== Permission.ADMINISTRATIVE);
-                break;
-        }
-        console.log(permissions);
-        props.onPermissionsChanged(permissions);
+    const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<Department>(
+        firestore
+            .collection(departmentCollection)
+            .orderBy(departmentName, "asc"), { limit: 15 } 
+    );
+
+    const hasPermission = (permission: Permission) => {
+        return props.user?.permissions.includes(permission);
     }
 
     return (
-        <Dialog
-            fullScreen={isMobile}
-            fullWidth={true}
-            maxWidth={isMobile ? "xs" : "md"}
-            open={props.isOpen}
-            onClose={() => props.onCancel()}>
-            <DialogTitle>{t("user_details")}</DialogTitle>
-            <DialogContent dividers={true}>
-                <Container>
-                    <Grid container direction={isMobile ? "column" : "row"} alignItems="stretch" justifyContent="center" spacing={isMobile ? 0 : 4}>
-                        <Grid item xs={6} className={classes.gridItem}>
-                            <TextField
-                                autoFocus
-                                id="editor-user-last-name"
-                                type="text"
-                                label={ t("field.last_name") }
-                                value={props.lastName}
-                                className={classes.textField}
-                                error={lastNameError}
-                                helperText={lastNameError ? t("feedback.empty_last_name") : undefined}
-                                onChange={onLastNameChanged}/>
+        <>
+            <Dialog
+                fullScreen={isMobile}
+                fullWidth={true}
+                maxWidth={isMobile ? "xs" : "md"}
+                open={props.isOpen}
+                onClose={() => props.onDismiss()}>
+                <form onSubmit={handleSubmit(onSubmit)}>
+                    <DialogTitle>{t("user_details")}</DialogTitle>
+                    <DialogContent dividers={true}>
+                        <Container>
+                            <Grid container direction={isMobile ? "column" : "row"} alignItems="stretch" justifyContent="center" spacing={isMobile ? 0 : 4}>
+                                <Grid item xs={6} className={classes.gridItem}>
+                                    <TextField
+                                        autoFocus
+                                        disabled={isWritePending}
+                                        id="lastName"
+                                        type="text"
+                                        label={ t("field.last_name") }
+                                        defaultValue={props.user?.lastName}
+                                        error={errors.lastName !== undefined}
+                                        helperText={errors.lastName?.message !== undefined ? t(errors.lastName?.message) : undefined}
+                                        {...register("lastName", { required: "feedback.empty_last_name" })}/>
 
-                            <TextField
-                                id="editor-user-first-name"
-                                type="text"
-                                label={ t("field.first_name") }
-                                value={props.firstName}
-                                className={classes.textField}
-                                error={firstNameError}
-                                helperText={firstNameError ? t("feedback.empty_first_name") : undefined}
-                                onChange={onFirstNameChanged}/>
+                                    <TextField
+                                        disabled={isWritePending}
+                                        id="firstName"
+                                        type="text"
+                                        label={ t("field.first_name") }
+                                        defaultValue={props.user?.firstName}
+                                        error={errors.firstName !== undefined}
+                                        helperText={errors.firstName?.message !== undefined ? t(errors.firstName?.message) : undefined}
+                                        {...register("firstName", { required: "feedback.empty_first_name" })}/>
 
-                            <TextField
-                                id="editor-user-email"
-                                type="text"
-                                label={ t("field.email") }
-                                value={props.email}
-                                className={classes.textField}
-                                error={emailError}
-                                helperText={emailError ? t("feedback.empty_email_address") : undefined}
-                                onChange={onEmailAddressChanged} />
+                                    <TextField
+                                        disabled={isWritePending}
+                                        id="email"
+                                        type="text"
+                                        label={ t("field.email") }
+                                        defaultValue={props.user?.email}
+                                        error={errors.email !== undefined}
+                                        helperText={errors.email?.message !== undefined ? t(errors.email?.message) : undefined}
+                                        {...register("email", { required: "feedback.empty_email" })} />
 
-                            <TextField
-                                id="editor-user-position"
-                                type="text"
-                                label={ t("field.position") }
-                                value={props.position}
-                                className={classes.textField}
-                                error={positionError}
-                                helperText={positionError ? t("feedback.empty_position") : undefined}
-                                onChange={onPositionChanged} />
+                                    <TextField
+                                        disabled={isWritePending}
+                                        id="position"
+                                        type="text"
+                                        label={ t("field.position") }
+                                        defaultValue={props.user?.position}
+                                        error={errors.position !== undefined}
+                                        helperText={errors.position?.message !== undefined ? t(errors.position?.message) : undefined}
+                                        {...register("position", { required: "feedback.empty_postion"})} />
 
-                            <FormControl component="fieldset" className={classes.textField}>
-                                <FormLabel component="legend">
-                                    <Typography variant="body2">{ t("field.department") }</Typography>
-                                </FormLabel>
-                                <ListItem button onClick={props.onDepartmentSelect}>
-                                    <Typography variant="body2">
-                                        { props.department?.name !== undefined ? props.department?.name : t("not_set")  }
-                                    </Typography>
-                                </ListItem>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={6} className={classes.gridItem}>
-                            <FormControl component="fieldset" className={classes.textField}>
-                            <FormLabel component="legend">
-                                <Typography variant="body2">{ t("field.permissions") }</Typography>
-                            </FormLabel>
-                            <FormGroup>
-                                <FormControlLabel
-                                    label={t("permission.read")}
-                                    control={
-                                        <Checkbox 
-                                            checked={hasPermission(props.permissions, Permission.READ)} 
-                                            onChange={onPermissionsChanged}
-                                            name="editor-read"/>
-                                    }/>
-                                <FormControlLabel
-                                    label={t("permission.write")}
-                                    control={
-                                        <Checkbox 
-                                            checked={hasPermission(props.permissions, Permission.WRITE)} 
-                                            onChange={onPermissionsChanged}
-                                            name="editor-write"/>
-                                    }/>
-                                <FormControlLabel
-                                    label={t("permission.delete")}
-                                    control={
-                                        <Checkbox 
-                                            checked={hasPermission(props.permissions, Permission.DELETE)} 
-                                            onChange={onPermissionsChanged}
-                                            name="editor-delete"/>
-                                    }/>
-                                <FormControlLabel
-                                    label={t("permission.manage_users")}
-                                    control={
-                                        <Checkbox 
-                                            checked={hasPermission(props.permissions, Permission.MANAGE_USERS)} 
-                                            onChange={onPermissionsChanged}
-                                            name="editor-manage-users"/>
-                                    }/>
-                                <FormControlLabel
-                                    label={t("permission.administrative")}
-                                    control={
-                                        <Checkbox 
-                                            checked={hasPermission(props.permissions, Permission.ADMINISTRATIVE)} 
-                                            onChange={onPermissionsChanged}
-                                            name="editor-administrative"/>
-                                    }/>
-                            </FormGroup>
-                        </FormControl>
-                        { props.permissions.includes(Permission.ADMINISTRATIVE) &&
-                            <Card variant="outlined" className={classes.card}>
-                                {t("info.user_editor_admin_permission")}
-                            </Card>
-                        }
-                        </Grid>
-                    </Grid>
-                </Container>
-            </DialogContent>
+                                    <FormControl component="fieldset" fullWidth>
+                                        <FormLabel component="legend">
+                                            <Typography variant="body2">{ t("field.department") }</Typography>
+                                        </FormLabel>
+                                        <ListItem button onClick={onPickerView} disabled={isWritePending}>
+                                            <Typography variant="body2">
+                                                { department !== undefined ? department?.name : t("not_set")  }
+                                            </Typography>
+                                        </ListItem>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={6} className={classes.gridItem}>
+                                    <FormControl component="fieldset" fullWidth>
+                                    <FormLabel component="legend">
+                                        <Typography variant="body2">{ t("field.permissions") }</Typography>
+                                    </FormLabel>
+                                    <FormGroup>
+                                        <FormControlLabel
+                                            label={t("permission.read")}
+                                            control={
+                                                <Controller
+                                                    name="permissionRead"
+                                                    control={control}
+                                                    render={({ field: { onChange, value } }) => (
+                                                        <Checkbox 
+                                                            disabled={isWritePending}
+                                                            defaultChecked={hasPermission(Permission.READ)}
+                                                            checked={value} 
+                                                            onChange={onChange}/>
+                                                    )} />
+                                            }/>
+                                        <FormControlLabel
+                                            label={t("permission.write")}
+                                            control={
+                                                <Controller
+                                                    name="permissionWrite"
+                                                    control={control}
+                                                    render={({ field: { onChange, value }}) => (
+                                                        <Checkbox 
+                                                            disabled={isWritePending}
+                                                            defaultChecked={hasPermission(Permission.WRITE)}
+                                                            checked={value} 
+                                                            onChange={onChange}/>
+                                                    )}/>
+                                            }/>
+                                        <FormControlLabel
+                                            label={t("permission.delete")}
+                                            control={
+                                                <Controller
+                                                    name="permissionDelete"
+                                                    control={control}
+                                                    render={({ field: { onChange, value }}) => (
+                                                        <Checkbox 
+                                                            disabled={isWritePending}
+                                                            defaultChecked={hasPermission(Permission.DELETE)}
+                                                            checked={value} 
+                                                            onChange={onChange}/>
+                                                    )} />
+                                                
+                                            }/>
+                                        <FormControlLabel
+                                            label={t("permission.manage_users")}
+                                            control={
+                                                <Controller
+                                                    name="permissionManageUsers"
+                                                    control={control}
+                                                    render={({ field: { onChange, value }}) => (
+                                                        <Checkbox 
+                                                            disabled={isWritePending}
+                                                            defaultChecked={hasPermission(Permission.MANAGE_USERS)}
+                                                            checked={value} 
+                                                            onChange={onChange}/>
+                                                    )} />
+                                            }/>
+                                        <FormControlLabel
+                                            label={t("permission.administrative")}
+                                            control={
+                                                <Controller
+                                                    name="permissionAdmin"
+                                                    control={control}
+                                                    render={({ field: { onChange, value }}) => (
+                                                        <Checkbox
+                                                            disabled={isWritePending}
+                                                            defaultChecked={hasPermission(Permission.ADMINISTRATIVE)}
+                                                            checked={value} 
+                                                            onChange={onChange}/>
+                                                    )} />
+                                            }/>
+                                    </FormGroup>
+                                </FormControl>
+                                { props.user?.permissions.includes(Permission.ADMINISTRATIVE) &&
+                                    <Card variant="outlined" className={classes.card}>
+                                        {t("info.user_editor_admin_permission")}
+                                    </Card>
+                                }
+                                </Grid>
+                            </Grid>
+                        </Container>
+                    </DialogContent>
 
-            <DialogActions>
-                <Button color="primary" onClick={props.onCancel}>{ t("cancel") }</Button>
-                <Button color="primary" onClick={onPreSubmit}>{ t("save") }</Button>
-            </DialogActions>
-        </Dialog>
+                    <DialogActions>
+                        <Button color="primary" onClick={props.onDismiss} disabled={isWritePending}>{ t("cancel") }</Button>
+                        <Button color="primary" type="submit" disabled={isWritePending}>{ t("save") }</Button>
+                    </DialogActions>
+                </form>
+            </Dialog>
+            <DepartmentPicker
+                isOpen={isPickerOpen}
+                departments={items}
+                isLoading={isLoading}
+                hasPrevious={isStart}
+                hasNext={isEnd}
+                onPrevious={getPrev}
+                onNext={getNext}
+                onDismiss={onPickerDismiss}
+                onSelectItem={onDepartmentSelected}/>
+        </>
     );
 }
 

@@ -1,17 +1,38 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Button from "@material-ui/core/Button";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import LinearProgress from "@material-ui/core/LinearProgress";
-import useMediaQuery from "@material-ui/core/useMediaQuery";
-import { useTheme, makeStyles } from "@material-ui/core/styles";
+import {
+    Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    LinearProgress,
+    ListItem,
+    ListItemText,
+    useMediaQuery,
+    useTheme,
+    makeStyles
+} from "@material-ui/core";
+import { useSnackbar } from "notistack";
+import { InstantSearch, connectHits } from "react-instantsearch-dom";
+import { HitsProvided } from "react-instantsearch-core";
 
-import { usePermissions } from "../auth/AuthProvider";
-import { Request } from "./Request";
+import { Request, RequestRepository } from "./Request";
 import RequestList from "./RequestList";
+import { useAuthState, usePermissions } from "../auth/AuthProvider";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
+import { minimize } from "../user/User";
+import CustomDialogTitle from "../../components/CustomDialogTitle";
+import { SearchBox, Highlight, Provider, Results } from "../../components/Search";
+import { usePagination } from "../../shared/pagination";
+import {
+    requestCollection,
+    requestedAssetName,
+    endorser,
+    petitionerName
+} from "../../shared/const";
+import { firestore } from "../../index";
 
 const useStyles = makeStyles(() => ({
     root: {
@@ -21,57 +42,145 @@ const useStyles = makeStyles(() => ({
         '& .MuiList-padding': {
             padding: 0
         }
+    },
+    search: {
+        minHeight: '60vh'
+    },
+    searchBox: {
+        margin: '0.6em 1em'
     }
 }));
 
 type RequestScreenProps = {
     isOpen: boolean,
-    requests: Request[],
-    isLoading: boolean,
-    hasPrevious: boolean,
-    hasNext: boolean,
-    onPreviousBatch: () => void,
-    onNextBatch: () => void,
-    onDismiss: () => void,
-    onSelectItem: (request: Request) => void,
-    onDeleteItem: (request: Request) => void,
+    onDismiss: () => void
 }
 
 const RequestScreen = (props: RequestScreenProps) => {
     const { t } = useTranslation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
+    const [search, setSearch] = useState(false);
+    const [request, setRequest] = useState<Request | undefined>(undefined);
     const { isAdmin } = usePermissions();
+    const { user } = useAuthState();
     const classes = useStyles();
+    const { enqueueSnackbar } = useSnackbar();
+
+    const onSearchInvoked = () => setSearch(!search)
+
+    const onEndorsementDismiss = () => setRequest(undefined);
+    const onEndorsementConfirmed = () => {
+        if (user !== undefined && request !== undefined) {
+            const endorser = minimize(user);
+
+            RequestRepository.approve(request, endorser)
+                .then(() => enqueueSnackbar(t("feedback.request_endorsed")))
+                .catch(() => enqueueSnackbar(t("feedback.request_endorse_error")))
+                .finally(onEndorsementDismiss)
+        } else enqueueSnackbar(t("feedback.error_generic."))
+    }
+
+    const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<Request>(
+        firestore.collection(requestCollection)
+            .where(endorser, "==", null)
+            .orderBy(requestedAssetName, "asc"), { limit: 15 }
+    )
 
     return (
-        <Dialog
-            fullScreen={isMobile}
-            fullWidth={true}
-            maxWidth="xs"
-            open={props.isOpen}
-            onClose={props.onDismiss}>
-            <DialogTitle>{ t("navigation.requests") }</DialogTitle>
-            <DialogContent dividers={true} className={classes.root}>
-                { isAdmin
-                    ? !props.isLoading
-                        ? <RequestList 
-                            hasPrevious={props.hasPrevious}
-                            hasNext={props.hasNext}
-                            onPrevious={props.onPreviousBatch}
-                            onNext={props.onNextBatch}
-                            requests={props.requests} 
-                            onItemSelect={props.onSelectItem}
-                            onItemRemove={props.onDeleteItem}/>
-                        : <LinearProgress/>
-                    :  <ErrorNoPermissionState/>
-                }
-            </DialogContent>
-            <DialogActions>
-                <Button color="primary" onClick={props.onDismiss}>{ t("button.close") }</Button>
-            </DialogActions>
-        </Dialog>
+        <>
+            <Dialog
+                fullScreen={isMobile}
+                fullWidth={true}
+                maxWidth="xs"
+                open={props.isOpen}
+                onClose={props.onDismiss}>
+                <CustomDialogTitle onSearch={onSearchInvoked}>{ t("navigation.requests") }</CustomDialogTitle>
+                <DialogContent dividers={true} className={classes.root}>
+                    { search 
+                        ?   <InstantSearch searchClient={Provider} indexName="requests">
+                                <Box className={classes.searchBox}>
+                                    <SearchBox/>
+                                </Box>
+                                <Box className={classes.search}>
+                                    <Results>
+                                        <RequestHits onItemSelect={setRequest}/>
+                                    </Results>
+                                </Box>
+                            </InstantSearch>
+                        : isAdmin
+                            ? !isLoading
+                                ? <RequestList 
+                                    requests={items}
+                                    hasPrevious={isStart}
+                                    hasNext={isEnd}
+                                    onPrevious={getPrev}
+                                    onNext={getNext}
+                                    onItemSelect={setRequest}/>
+                                : <LinearProgress/>
+                            :  <ErrorNoPermissionState/>
+                    }
+                </DialogContent>
+                <DialogActions>
+                    <Button color="primary" onClick={props.onDismiss}>{ t("button.close") }</Button>
+                </DialogActions>
+            </Dialog>
+            { request &&
+                <Dialog
+                    maxWidth="xs"
+                    fullWidth={true}
+                    open={request !== undefined}
+                    onClose={onEndorsementDismiss}>
+                    <DialogTitle>{t("dialog.request_endorse")}</DialogTitle>
+                    <DialogContent>{t("dialog.request_endorse_summary")}</DialogContent>
+                    <DialogActions>
+                        <Button
+                            color="primary"
+                            onClick={onEndorsementDismiss}>
+                            {t("button.cancel")}
+                        </Button>
+                        <Button
+                            color="primary"
+                            onClick={onEndorsementConfirmed}>
+                            {t("button.endorse")}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            }
+        </>
     )
 }
 
 export default RequestScreen;
+
+type RequestHitsListProps = HitsProvided<Request> & {
+    onItemSelect: (request: Request) => void
+}
+const RequestHitsList = (props: RequestHitsListProps) => {
+    return (
+        <>
+        { props.hits.map((r: Request) => (
+            <RequestListItem request={r} onItemSelect={props.onItemSelect}/>
+        ))
+        }
+        </>
+    )
+}
+const RequestHits = connectHits<RequestHitsListProps, Request>(RequestHitsList);
+
+type RequestListItemProps = {
+    request: Request,
+    onItemSelect: (request: Request) => void
+}
+const RequestListItem = (props: RequestListItemProps) => {
+    return (
+        <ListItem
+            button
+            key={props.request.requestId}
+            onClick={() => props.onItemSelect(props.request)}>
+            <ListItemText
+                primary={<Highlight attribute={requestedAssetName} hit={props.request}/>}
+                secondary={<Highlight attribute={petitionerName} hit={props.request}/>}/>
+        </ListItem>
+    )
+}

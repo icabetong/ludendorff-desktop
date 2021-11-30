@@ -8,19 +8,11 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    TextField,
-    makeStyles
+    TextField
 } from "@material-ui/core";
 import { useSnackbar } from "notistack";
 import { Category, CategoryRepository } from "../category/Category";
 import { newId } from "../../shared/utils";
-
-const useStyles = makeStyles(() => ({
-    textField: {
-        margin: '0.6em 0',
-        width: '100%'
-    }
-}));
 
 type FormValues = {
     name?: string
@@ -35,7 +27,6 @@ type CategoryEditorProps = {
 
 const CategoryEditor = (props: CategoryEditorProps) => {
     const { t } = useTranslation();
-    const classes = useStyles();
     const { enqueueSnackbar } = useSnackbar();
     const [isWritePending, setWritePending] = React.useState(false);
     const { register, handleSubmit, formState: { errors } } = useForm();
@@ -54,17 +45,21 @@ const CategoryEditor = (props: CategoryEditorProps) => {
                     enqueueSnackbar(t("feedback.category_created"))
                 ).catch(() => 
                     enqueueSnackbar(t("feedback.category_create_error"))
-                ).finally(() => setWritePending(false))
+                ).finally(() => {
+                    setWritePending(false);
+                    props.onDismiss();
+                })
         } else {
             CategoryRepository.update(category)
                 .then(() => 
                     enqueueSnackbar(t("feedback.category_updated"))
                 ).catch(() => 
                     enqueueSnackbar(t("feedback.category_update_error"))
-                ).finally(() => setWritePending(false))
+                ).finally(() => {
+                    setWritePending(false);
+                    props.onDismiss();
+                })
         }
-
-        props.onDismiss();
     }
 
     return (
@@ -78,6 +73,7 @@ const CategoryEditor = (props: CategoryEditorProps) => {
                 <DialogContent>
                     <Container disableGutters>
                         <TextField
+                            disabled={isWritePending}
                             autoFocus
                             id="name"
                             type="text"
@@ -85,19 +81,20 @@ const CategoryEditor = (props: CategoryEditorProps) => {
                             defaultValue={props.category ? props.category.categoryName : ""}
                             error={errors.name}
                             helperText={errors.name ? t(errors.name.message) : undefined }
-                            className={classes.textField}
                             {...register("name", { required: "feedback.empty-category-name" } )}/>
                     </Container>
                 </DialogContent>
                 <DialogActions>
                     <Button 
                         color="primary"
-                        onClick={props.onDismiss}>
+                        onClick={props.onDismiss}
+                        disabled={isWritePending}>
                         { t("button.cancel") }
                     </Button>
                     <Button 
                         color="primary" 
-                        type="submit">
+                        type="submit"
+                        disabled={isWritePending}>
                         { t("button.save") }
                     </Button>
                 </DialogActions>

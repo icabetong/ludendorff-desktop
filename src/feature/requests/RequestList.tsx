@@ -1,38 +1,57 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import List from "@material-ui/core/List";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemSecondaryAction from "@material-ui/core/ListItemSecondaryAction";
-import ListItemText from "@material-ui/core/ListItemText";
+import {
+    List,
+    ListItem,
+    ListItemSecondaryAction,
+    ListItemText
+} from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
+import { useSnackbar } from "notistack";
 
 import { MailOpenIcon, TrashIcon } from "@heroicons/react/outline";
 
 import EmptyStateComponent from "../state/EmptyStates";
 import PaginationController from "../../components/PaginationController";
 import HeroIconButton from "../../components/HeroIconButton";
+import ConfirmationDialog from "../shared/ConfirmationDialog";
 
 import { usePermissions } from "../auth/AuthProvider";
-import { Request } from "./Request";
+import { Request, RequestRepository } from "./Request";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles(() => ({
     root: {
         minHeight: '60vh'
     },
 }));
 
 type RequestListProps = {
+    isHome?: boolean | undefined
     requests: Request[],
     hasPrevious: boolean,
     hasNext: boolean,
     onPrevious: () => void,
     onNext: () => void,
     onItemSelect: (request: Request) => void,
-    onItemRemove: (request: Request) => void
 }
 
 const RequestList = (props: RequestListProps) => {
     const classes = useStyles();
     const { t } = useTranslation();
+    const { enqueueSnackbar } = useSnackbar();
+    const [request, setRequest] = useState<Request | undefined>(undefined);
+
+    const onRemoveInvoke = (request: Request) => setRequest(request);
+    const onRemoveDismiss = () => setRequest(undefined);
+
+    const onRequestRemove = () => {
+        if (request !== undefined) {
+            RequestRepository.remove(request)
+                .then(() => enqueueSnackbar(t("feedback.request_removed")))
+                .catch(() => enqueueSnackbar(t("feedback.request_remove_error")))
+                .finally(onRemoveDismiss)
+        }
+    }
 
     return (
         <>
@@ -45,7 +64,7 @@ const RequestList = (props: RequestListProps) => {
                                 key={request.requestId}
                                 request={request}
                                 onItemSelect={props.onItemSelect}
-                                onItemRemove={props.onItemRemove}/>
+                                onItemRemove={onRemoveInvoke}/>
                         );
                     })
                 }</List>
@@ -59,8 +78,16 @@ const RequestList = (props: RequestListProps) => {
                 </>
             : <EmptyStateComponent
                 icon={MailOpenIcon}
-                title={t("empty.requests")}
-                subtitle={t("empty.requests_summary")}/>
+                title={t("empty_request")}
+                subtitle={t("empty_request_summary")}/>
+            }
+            { request &&
+                <ConfirmationDialog
+                    isOpen={request !== undefined}
+                    title={props.isHome ? "dialog.request_cancel" : "dialog.request_remove"}
+                    summary={props.isHome ? "dialog.request_cancel_summary" : "dialog.request_remove_summary"}
+                    onDismiss={onRemoveDismiss}
+                    onConfirm={onRequestRemove}/>
             }
         </>
     )
@@ -80,7 +107,7 @@ const RequestItem = (props: RequestItemProps) => {
         <ListItem
             button
             key={props.request.requestId}
-            onClick={() => props.onItemRemove(props.request)}>
+            onClick={() => props.onItemSelect(props.request)}>
             <ListItemText
                 primary={props.request.asset?.assetName}
                 secondary={props.request.petitioner?.name}/>

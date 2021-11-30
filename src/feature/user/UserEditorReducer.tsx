@@ -1,50 +1,44 @@
 import { User } from "./User";
 import { newId } from "../../shared/utils";
 
-export enum UserEditorActionType {
-    CHANGED = "changed",
+export enum ActionType {
     CREATE = "create",
     UPDATE = "update",
     DISMISS = "dismiss"
 }
-type UserEditorAction = {
-    type: UserEditorActionType,
+type Action = {
+    type: ActionType,
     payload?: User
 }
-type UserEditorState = {
+type State = {
     user?: User,
     isCreate: boolean,
     isOpen: boolean
 }
 
-export const userEditorInitialState: UserEditorState = {
+export const initialState: State = {
     user: { userId: newId(), permissions: [], disabled: false },
     isCreate: true,
     isOpen: false
 }
 
-export const userEditorReducer = (state: UserEditorState, action: UserEditorAction): UserEditorState => {
+export const reducer = (state: State, action: Action): State => {
     const { type, payload } = action;
 
     switch(type) {
-        case UserEditorActionType.CHANGED:
+        case ActionType.CREATE:
             return {
-                ...state,
-                user: payload
+                user: undefined,
+                isCreate: true,
+                isOpen: true
             }
-        case UserEditorActionType.CREATE:
+        case ActionType.UPDATE:
             return {
                 user: payload,
                 isCreate: true,
                 isOpen: true
             }
-        case UserEditorActionType.UPDATE:
-            return {
-                user: payload,
-                isCreate: true,
-                isOpen: true
-            }
-        case UserEditorActionType.DISMISS: 
+        case ActionType.DISMISS: 
             return {
                 ...state,
                 isOpen: false,

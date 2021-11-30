@@ -1,17 +1,27 @@
-import { useState, useReducer, lazy } from "react";
+import { useState, useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import Box from "@material-ui/core/Box";
-import Hidden from "@material-ui/core/Hidden";
-import LinearProgress from "@material-ui/core/LinearProgress";
-import MenuItem from "@material-ui/core/MenuItem";
-import Tooltip from "@material-ui/core/Tooltip";
-import { makeStyles } from "@material-ui/core/styles";
-import { DataGrid, GridRowParams, GridValueGetterParams, GridOverlay, GridCellParams } from "@material-ui/data-grid";
+import {
+    Box,
+    Hidden,
+    LinearProgress,
+    MenuItem,
+    Tooltip,
+    makeStyles
+} from "@material-ui/core";
+import { 
+    DataGrid, 
+    GridRowParams, 
+    GridValueGetterParams, 
+    GridOverlay, 
+    GridCellParams 
+} from "@material-ui/data-grid";
 import { useSnackbar } from "notistack";
 
-import DesktopComputerIcon from "@heroicons/react/outline/DesktopComputerIcon";
-import PlusIcon from "@heroicons/react/outline/PlusIcon";
-import TrashIcon from "@heroicons/react/outline/TrashIcon";
+import {
+    DesktopComputerIcon,
+    PlusIcon,
+    TrashIcon
+} from "@heroicons/react/outline";
 
 import GridLinearProgress from "../../components/GridLinearProgress";
 import GridToolbar from "../../components/GridToolbar";
@@ -23,7 +33,8 @@ import EmptyStateComponent from "../state/EmptyStates";
 import { usePermissions } from "../auth/AuthProvider";
 import { Asset, AssetRepository, getStatusLoc, Status } from "./Asset";
 import AssetList from "./AssetList";
-import { Category } from "../category/Category";
+import AssetSearchScreen from "./AssetSearchScreen";
+import ReportScreen from "../report/ReportScreen";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import { usePreferences } from "../settings/Preference";
 
@@ -33,24 +44,22 @@ import { formatDate } from "../../shared/utils";
 
 import {
     assetCollection,
-    categoryCollection,
     assetId,
     assetName,
     assetCategory,
     dateCreated,
     assetStatus,
-    categoryName
 } from "../../shared/const";
 
 import {
-    AssetEditorActionType,
-    assetEditorInitialState,
-    assetEditorReducer
+    ActionType,
+    initialState,
+    reducer
 } from "./AssetEditorReducer";
 
-import ConfirmationDialog from "../shared/ItemRemoveDialog";
-const AssetEditor = lazy(() => import("./AssetEditor"));
-const CategoryScreen = lazy(() => import("../category/CategoryScreen"));
+import AssetEditor from "./AssetEditor";
+import CategoryScreen from "../category/CategoryScreen";
+import ConfirmationDialog from "../shared/ConfirmationDialog";
 
 const useStyles = makeStyles(() => ({
     root: {
@@ -89,7 +98,6 @@ const AssetScreen = (props: AssetScreenProps) => {
 
     const onRemoveInvoke = (asset: Asset) => setAsset(asset);
     const onRemoveDismiss = () => setAsset(undefined);
-    
     const onAssetRemove = () => {
         if (asset !== undefined) {
             AssetRepository.remove(asset)
@@ -117,8 +125,7 @@ const AssetScreen = (props: AssetScreenProps) => {
             flex: 1, 
             valueGetter: (params: GridValueGetterParams) => {
                 const formatted = formatDate(params.row.dateCreated);
-                return formatted === 'unknown' ? t("not_yet_returned") : formatted;
-
+                return formatted === 'unknown' ? t("unknown") : formatted;
             } 
         },
         { 
@@ -156,45 +163,32 @@ const AssetScreen = (props: AssetScreenProps) => {
         }
     ];
 
-    const {
-        items: assets,
-        isLoading: isAssetsLoading,
-        isStart: atAssetStart,
-        isEnd: atAssetEnd,
-        getPrev: getPreviousAssets,
-        getNext: getNextAssets,
-    } = usePagination<Asset>(
+    const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<Asset>(
         firestore
             .collection(assetCollection)
             .orderBy(assetName, "asc"), { limit: 15 }
     )
 
-    const [editorState, editorDispatch] = useReducer(assetEditorReducer, assetEditorInitialState);
-    const onAssetEditorDismiss = () => editorDispatch({ type: AssetEditorActionType.DISMISS })
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const onAssetEditorDismiss = () => dispatch({ type: ActionType.DISMISS })
 
     const onDataGridRowDoubleClicked = (params: GridRowParams) => {
         onAssetSelected(params.row as Asset);
     }
 
     const onAssetSelected = (asset: Asset) => {
-        editorDispatch({
-            type: AssetEditorActionType.UPDATE,
+        dispatch({
+            type: ActionType.UPDATE,
             payload: asset
         })
     }
 
-    const {
-        items: categories,
-        isLoading: isCategoriesLoading,
-        isStart: atCategoryStart,
-        isEnd: atCategoryEnd,
-        getPrev: getPreviousCategories,
-        getNext: getNextCategories
-    } = usePagination<Category>(
-        firestore
-            .collection(categoryCollection)
-            .orderBy(categoryName, "asc"), { limit: 15 }   
-    )
+    const [search, setSearch] = useState<boolean>(false);
+    const onSearchInvoke = () => setSearch(true);
+    const onSearchDismiss = () => setSearch(false);
+
+    const [reports, setReports] = useState(false);
+    const onReportsInvoke = () => setReports(!reports);
 
     const [isCategoryOpen, setCategoryOpen] = useState(false);
     const onCategoryListView = () => setCategoryOpen(true)
@@ -211,9 +205,11 @@ const AssetScreen = (props: AssetScreenProps) => {
                     : undefined
                 }
                 buttonIcon={PlusIcon}
-                buttonOnClick={() => editorDispatch({ type: AssetEditorActionType.CREATE }) }
+                buttonOnClick={() => dispatch({ type: ActionType.CREATE }) }
+                onSearch={onSearchInvoke}
                 menuItems={[
-                    <MenuItem key={0} onClick={onCategoryListView}>{ t("navigation.categories") }</MenuItem>
+                    <MenuItem key={0} onClick={onCategoryListView}>{ t("navigation.categories") }</MenuItem>,
+                    <MenuItem key={1} onClick={onReportsInvoke}>{t("navigation.reports")}</MenuItem>
                 ]}/>
             { canRead
                 ? <>
@@ -225,11 +221,11 @@ const AssetScreen = (props: AssetScreenProps) => {
                                     NoRowsOverlay: EmptyStateOverlay,
                                     Toolbar: GridToolbar
                                 }}
-                                rows={assets}
+                                rows={items}
                                 columns={columns}
                                 density={userPreference.density}
                                 pageSize={15}
-                                loading={isAssetsLoading}
+                                loading={isLoading}
                                 paginationMode="server"
                                 getRowId={(r) => r.assetId}
                                 onRowDoubleClick={onDataGridRowDoubleClicked}
@@ -237,39 +233,42 @@ const AssetScreen = (props: AssetScreenProps) => {
                         </div>
                     </Hidden>
                     <Hidden smUp>
-                        { !isAssetsLoading 
-                            ? assets.length < 1 
+                        { !isLoading 
+                            ? items.length < 1 
                                 ? <AssetEmptyState/>
-                                : <AssetList assets={assets} onItemSelect={onAssetSelected}/>
+                                : <AssetList 
+                                    assets={items} 
+                                    onItemSelect={onAssetSelected}
+                                    onItemRemove={onRemoveInvoke}/>
                             : <LinearProgress/>
                         }
                     </Hidden>
-                    { !atAssetStart && !atAssetEnd &&
+                    { !isStart && !isEnd &&
                         <PaginationController
-                            hasPrevious={atAssetStart}
-                            hasNext={atAssetEnd}
-                            getPrevious={getPreviousAssets}
-                            getNext={getNextAssets}/>
+                            hasPrevious={isStart}
+                            hasNext={isEnd}
+                            getPrevious={getPrev}
+                            getNext={getNext}/>
                     }
                 </>
                 : <ErrorNoPermissionState/>
             }
-            <AssetEditor
-                isOpen={editorState.isOpen}
-                isCreate={editorState.isCreate}
-                asset={editorState.asset}
-                onDismiss={onAssetEditorDismiss}/>
-            { isCategoryOpen &&
-                <CategoryScreen
-                    isOpen={isCategoryOpen}
-                    categories={categories}
-                    isLoading={isCategoriesLoading}
-                    hasPrevious={atCategoryStart}
-                    hasNext={atCategoryEnd}
-                    onPreviousBatch={getPreviousCategories}
-                    onNextBatch={getNextCategories}
-                    onDismiss={onCategoryListDismiss}/>
+            { state.isOpen &&
+                <AssetEditor
+                    isOpen={state.isOpen}
+                    isCreate={state.isCreate}
+                    asset={state.asset}
+                    onDismiss={onAssetEditorDismiss}/>
             }
+            { search &&
+                <AssetSearchScreen
+                    isOpen={search}
+                    onDismiss={onSearchDismiss}
+                    onEditorInvoke={onAssetSelected}/>
+            }
+            <CategoryScreen
+                isOpen={isCategoryOpen}
+                onDismiss={onCategoryListDismiss}/>
             { asset &&
                 <ConfirmationDialog
                     isOpen={asset !== undefined}
@@ -277,6 +276,11 @@ const AssetScreen = (props: AssetScreenProps) => {
                     summary="dialog.asset_remove_summary"
                     onDismiss={onRemoveDismiss}
                     onConfirm={onAssetRemove}/>
+            }
+            {  reports &&
+                <ReportScreen
+                    isOpen={reports}
+                    onDismiss={onReportsInvoke}/>
             }
         </Box>
     )
