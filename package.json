@@ -28,6 +28,7 @@
     "axios": "^0.21.4",
     "clsx": "^1.1.1",
     "electron-is-dev": "^2.0.0",
+    "firebase": "^8.1.0",
     "install": "^0.13.0",
     "jspdf": "^2.4.0",
     "jsqr": "^1.4.0",
@@ -64,8 +65,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "electron-dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron-build": "./node_modules/.bin/electron-builder -c.extraMetadata.main=build/starter.js",
-    "preelectron-package": "npm run build"
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=assets/icons/mac/icon.icns --prune=true --out=release-builds",
+    "package-win": "electron-packager . ludendorff --overwrite --asar=true --platform=win32 --arch=ia32 --icon=assets/icons/win/icon.ico --prune=true --out=release-builds --version-string.CompanyName=CE --version-string.FileDescription=CE --version-string.ProductName='Ludendorff'",
+    "package-linux": "electron-packager . ludendorff --overwrite --asar=true --platform=linux --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=release-builds"
   },
   "build": {
     "appId": "io.capstone.ludendorff",
@@ -94,11 +96,11 @@
         "rpm",
         "AppImage"
       ],
-      "icon": "./public/desktop/win/icon.icns"
+      "icon": "./public/desktop/png/256x256.png"
     },
     "win": {
       "target": "squirrel",
-      "icon": "./public/desktop/icon.ico"
+      "icon": "./public/desktop/win/icon.ico"
     },
     "directories": {
       "buildResources": "public"
@@ -131,6 +133,7 @@
     "electron": "^13.1.7",
     "electron-builder": "^22.11.7",
     "electron-icon-builder": "^2.0.1",
+    "electron-packager": "^15.4.0",
     "file-loader": "^6.1.1",
     "wait-on": "^6.0.0"
   }

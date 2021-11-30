@@ -13,7 +13,8 @@ const windowSettings = {
     width: windowWidth,
     height: windowHeight,
     minWidth: windowWidth,
-    minHeight: windowHeight
+    minHeight: windowHeight,
+    icon: path.join(__dirname, 'assets/icons/png/64x64.png')
 }
 
 function createWindow() {
