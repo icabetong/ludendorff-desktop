@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "author": "Isaiah Collins Abetong <isaiahcollins_02@live.com> (https://github.com/icabetong)",
   "private": true,
+  "homepage": "https://www.github.com/icabetong/ludendorff-desktop",
   "dependencies": {
     "@date-io/date-fns": "^1.3.13",
     "@date-io/moment": "^2.11.0",
@@ -68,6 +69,7 @@
   },
   "build": {
     "appId": "io.capstone.ludendorff",
+    "productName": "Ludendorff",
     "dmg": {
       "contents": [
         {
@@ -82,15 +84,28 @@
         }
       ]
     },
+    "mac": {
+      "icon": "./public/desktop/mac/icon.icns",
+      "category": "public.app-category.utilities"
+    },
     "linux": {
       "target": [
         "deb",
+        "rpm",
         "AppImage"
-      ]
+      ],
+      "icon": "./public/desktop/win/icon.icns"
     },
     "win": {
-      "target": "squirrel"
-    }
+      "target": "squirrel",
+      "icon": "./public/desktop/icon.ico"
+    },
+    "directories": {
+      "buildResources": "public"
+    },
+    "files": [
+      "./public/**/*"
+    ]
   },
   "eslintConfig": {
     "extends": [
@@ -115,6 +130,7 @@
     "concurrently": "^6.2.0",
     "electron": "^13.1.7",
     "electron-builder": "^22.11.7",
+    "electron-icon-builder": "^2.0.1",
     "file-loader": "^6.1.1",
     "wait-on": "^6.0.0"
   }
