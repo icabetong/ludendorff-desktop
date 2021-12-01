@@ -6,7 +6,28 @@
 			"script": "electron-dev",
 			"problemMatcher": [],
 			"label": "Run Electron Development Mode",
-			"detail": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\""
+			"detail": "concurrently \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\""
+		},
+		{
+			"type": "npm",
+			"script": "package-mac",
+			"problemMatcher": [],
+			"label": "Package for Mac",
+			"detail": "Generate Package for macOS",
+		},
+		{
+			"type": "npm",
+			"script": "package-win",
+			"problemMatcher": [],
+			"label": "Package for Windows",
+			"detail": "Generate Package for Windows",
+		},
+		{
+			"type": "npm",
+			"script": "package-linux",
+			"problemMatcher": [],
+			"label": "Package for Linux",
+			"detail": "Generate Package for Linux",
 		}
 	]
 }
