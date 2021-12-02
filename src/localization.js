@@ -55,7 +55,8 @@ const resources = {
                 confirmation_password: "Confirm Password",
                 submitted_date: "Submitted Date",
                 search: "Search",
-                source: "Source"
+                source: "Source",
+                copies: "Copies"
             },
             placeholder: {
                 none: "None"
@@ -94,6 +95,8 @@ const resources = {
                 enable: "Enable",
                 export: "Export",
                 dismiss: "Dismiss",
+                copy: "Copy",
+                duplicate: "Duplicate",
                 show_menu: "Show menu",
                 show_drawer: "Show drawer",
                 signin: "Sign in",
@@ -129,6 +132,7 @@ const resources = {
                 assignment_created: "Assignment created successfully",
                 assignment_updated: "Assignment updated successfully",
                 assignment_removed: "Assignment removed successfully",
+                request_removed: "Request cancelled successfully",
                 asset_create_error: "Error creating asset",
                 asset_update_error: "Error updating asset",
                 asset_remove_error: "Error removing asset",
@@ -144,6 +148,7 @@ const resources = {
                 assignment_create_error: "Error creating assignment",
                 assignment_update_error: "Error updating assignment",
                 assignment_remove_error: "Error removing department",
+                request_remove_error: "Error canceling request",
                 reset_link_sent: "Password reset link sent"
             },
             error: {
@@ -219,6 +224,8 @@ const resources = {
             department_select: "Select Department",
             view_qr_code: "View QR-Code",
             view_qr_code_summary: "To save the code, right-click the image then select \"Save Image\".",
+            empty_home: "No Assets Assigned",
+            empty_home_summary: "There are no assets assigned to you.",
             empty_asset: "No Assets Added",
             empty_asset_summary: "There are no assets available.",
             empty_category: "No Categories Added",
