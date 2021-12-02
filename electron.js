@@ -16,7 +16,6 @@ function createWindow() {
         height: windowHeight,
         minWidth: windowWidth,
         minHeight: windowHeight,
-        frame: false,
     });
     mainWindow.removeMenu();
 
