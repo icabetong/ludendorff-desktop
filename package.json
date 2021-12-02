@@ -133,7 +133,6 @@
     "concurrently": "^6.2.0",
     "cross-env": "^7.0.3",
     "electron": "^13.1.7",
-    "electron-builder": "^22.11.7",
     "electron-icon-builder": "^2.0.1",
     "electron-packager": "^15.4.0",
     "file-loader": "^6.1.1",
