@@ -16,3 +16,8 @@ export const formatDate = (timestamp: Timestamp | undefined) => {
     const options = { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' } as const;
         return timestamp !== undefined ? timestamp?.toDate().toLocaleDateString(['en-PH'], options) : "unknown" ;
 }
+
+export const isElectron = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    return userAgent.indexOf('electron/') !== -1;
+}

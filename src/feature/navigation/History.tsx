@@ -1,3 +1,4 @@
-import { createBrowserHistory } from "history";
+import { createBrowserHistory, createHashHistory } from "history";
+import { isElectron } from "../../shared/utils";
 
-export default createBrowserHistory();
+export default isElectron() ? createHashHistory() : createBrowserHistory();

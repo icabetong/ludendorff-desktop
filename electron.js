@@ -9,16 +9,15 @@ let mainWindow;
 
 const windowWidth = 1024;
 const windowHeight = 600;
-const windowSettings = {
-    width: windowWidth,
-    height: windowHeight,
-    minWidth: windowWidth,
-    minHeight: windowHeight,
-    icon: path.join(__dirname, 'assets/icons/png/64x64.png')
-}
 
 function createWindow() {
-    mainWindow = new BrowserWindow(windowSettings);
+    mainWindow = new BrowserWindow({
+        width: windowWidth,
+        height: windowHeight,
+        minWidth: windowWidth,
+        minHeight: windowHeight,
+        frame: false,
+    });
     mainWindow.removeMenu();
 
     const appUrl = process.env.ELECTRON_START_URL || url.format({pathname: path.join(__dirname, 'build/index.html'), protocol: 'file:', slashes: true})

@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "electron-dev",
+			"script": "start-dev",
 			"problemMatcher": [],
 			"label": "Run Electron Development Mode",
 			"detail": "concurrently \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\""
