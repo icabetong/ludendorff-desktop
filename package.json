@@ -2,6 +2,7 @@
   "name": "ludendorff",
   "version": "0.1.0",
   "private": true,
+  "homepage": "./",
   "dependencies": {
     "@date-io/date-fns": "^1.3.13",
     "@date-io/moment": "^2.11.0",
@@ -57,7 +58,7 @@
     "workbox-strategies": "^5.1.4",
     "workbox-streams": "^5.1.4"
   },
-  "main": "src/starter.js",
+  "main": "starter.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -102,7 +103,8 @@
       "icon": "./public/desktop/win/icon.ico"
     },
     "directories": {
-      "buildResources": "public"
+      "buildResources": "build",
+      "app": "build"
     },
     "files": [
       "./public/**/*"
