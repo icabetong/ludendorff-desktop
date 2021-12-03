@@ -16,6 +16,7 @@ function createWindow() {
         height: windowHeight,
         minWidth: windowWidth,
         minHeight: windowHeight,
+        titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
     });
     mainWindow.removeMenu();
 
