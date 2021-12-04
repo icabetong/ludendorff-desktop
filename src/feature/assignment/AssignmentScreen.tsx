@@ -271,13 +271,11 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                             : <LinearProgress/>
                         }
                     </Hidden>
-                    { !atAssignmentStart && !atAssignmentEnd &&
-                        <PaginationController
-                            hasPrevious={atAssignmentStart}
-                            hasNext={atAssignmentEnd}
-                            getPrevious={getPreviousAssignments}
-                            getNext={getNextAssignments}/>
-                    }
+                <PaginationController
+                        hasPrevious={atAssignmentStart || assignments.length === 0}
+                        hasNext={atAssignmentEnd}
+                        getPrevious={getPreviousAssignments}
+                        getNext={getNextAssignments}/>
                 </>
                 : <ErrorNoPermissionState/>
             }
