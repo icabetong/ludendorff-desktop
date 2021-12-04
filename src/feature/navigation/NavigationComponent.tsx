@@ -127,7 +127,7 @@ export const NavigationComponent = (props: NavigationComponentPropsType) => {
     
     return (
         <Box>
-            <Box className="inset"/>
+            <Box className={classes.inset}/>
             <ListSubheader>{ t("navigation.manage") }</ListSubheader>
             <List className={classes.navigation}>
                 <NavigationList 
