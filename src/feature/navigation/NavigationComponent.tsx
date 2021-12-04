@@ -16,7 +16,6 @@ import {
     Divider,
     Typography,
     makeStyles,
-    useTheme
 } from "@material-ui/core";
 
 import {
@@ -31,7 +30,6 @@ import {
 
 import firebase from "firebase/app";
 import { AuthStatus, useAuthState, usePermissions } from "../auth/AuthProvider";
-import { ReactComponent as Logo } from "../../shared/icon.svg";
 
 export enum Destination {
     HOME = 1,
@@ -97,7 +95,6 @@ const useStyles = makeStyles((theme) => ({
 
 export const NavigationComponent = (props: NavigationComponentPropsType) => {
     const classes = useStyles();
-    const theme = useTheme();
     const { status, user } = useAuthState();
     const [triggerConfirmSignOut, setTriggerConfirmSignOut] = useState(false);
     const { t } = useTranslation();
