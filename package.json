@@ -90,7 +90,10 @@
     },
     "mac": {
       "type": "distribution",
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "target": [ 
+        "pkg"
+      ]
     },
     "linux": {
       "target": [
