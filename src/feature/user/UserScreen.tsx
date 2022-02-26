@@ -25,6 +25,7 @@ import {
   AddRounded,
   DeleteOutline,
   PeopleOutlineRounded,
+  SearchOutlined,
 } from "@material-ui/icons";
 import { query, collection, orderBy, onSnapshot } from "firebase/firestore";
 
@@ -69,7 +70,7 @@ const useStyles = makeStyles((theme) => ({
     width: '100%'
   },
   wrapper: {
-    height: '80%',
+    height: '90%',
     padding: '1.4em',
     ...getDataGridTheme(theme)
   }
@@ -224,8 +225,7 @@ const UserScreen = (props: UserScreenProps) => {
           title={t("navigation.users")}
           buttonText={t("button.create_user")}
           buttonIcon={AddRounded}
-          buttonOnClick={onUserEditorView}
-          onSearch={onSearchInvoke}/>
+          buttonOnClick={onUserEditorView}/>
       </Hidden>
       <Hidden mdUp>
         <ComponentHeader
@@ -254,6 +254,7 @@ const UserScreen = (props: UserScreenProps) => {
                 }}
                 componentsProps={{
                   toolbar: {
+                    endAction: <IconButton size="small" onClick={onSearchInvoke}><SearchOutlined/></IconButton>,
                     destinations: [
                       <Button
                         key="departments"
@@ -269,7 +270,7 @@ const UserScreen = (props: UserScreenProps) => {
                 rows={users}
                 columns={columns}
                 density={preferences.density}
-                pageSize={15}
+                pageSize={20}
                 loading={isLoading}
                 paginationMode="client"
                 getRowId={(r) => r.userId}

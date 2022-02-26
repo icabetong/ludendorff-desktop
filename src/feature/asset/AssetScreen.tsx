@@ -23,7 +23,8 @@ import {
   DesktopWindowsRounded,
   AddRounded,
   DeleteOutlineRounded,
-  FileCopyOutlined
+  FileCopyOutlined,
+  SearchOutlined
 } from "@material-ui/icons";
 
 import { query, collection, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
@@ -71,7 +72,7 @@ const useStyles = makeStyles((theme) => ({
     width: '100%',
   },
   wrapper: {
-    height: '80%',
+    height: '90%',
     padding: '1.4em',
     ...getDataGridTheme(theme)
   },
@@ -256,8 +257,7 @@ const AssetScreen = (props: AssetScreenProps) => {
               : undefined
           }
           buttonIcon={AddRounded}
-          buttonOnClick={() => dispatch({ type: ActionType.CREATE })}
-          onSearch={onSearchInvoke}/>
+          buttonOnClick={() => dispatch({ type: ActionType.CREATE })}/>
       </Hidden>
       <Hidden mdUp>
         <ComponentHeader
@@ -276,7 +276,7 @@ const AssetScreen = (props: AssetScreenProps) => {
       {canRead
         ? <>
           <Hidden xsDown>
-            <div className={classes.wrapper}>
+            <Box className={classes.wrapper}>
               <DataGrid
                 components={{
                   LoadingOverlay: GridLinearProgress,
@@ -284,7 +284,8 @@ const AssetScreen = (props: AssetScreenProps) => {
                   Toolbar: GridToolbar
                 }}
                 componentsProps={{
-                  toolbar: { 
+                  toolbar: {
+                    endAction: <IconButton size="small" onClick={onSearchInvoke}><SearchOutlined/></IconButton>,
                     destinations: [
                       <Button
                         key="categories"
@@ -300,12 +301,12 @@ const AssetScreen = (props: AssetScreenProps) => {
                 rows={assets}
                 columns={columns}
                 density={userPreference.density}
-                pageSize={15}
+                pageSize={20}
                 loading={isLoading}
                 paginationMode="client"
                 getRowId={(r) => r.assetId}
                 onRowDoubleClick={onDataGridRowDoubleClicked}/>
-            </div>
+            </Box>
           </Hidden>
           <Hidden smUp>
             {!isLoading

@@ -43,6 +43,7 @@ import {
 import { formatDate } from "../../shared/utils";
 import { firestore } from "../../index";
 import { getDataGridTheme } from "../core/Core";
+import { usePreferences } from "../settings/Preference";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -50,7 +51,7 @@ const useStyles = makeStyles((theme) => ({
     width: '100%',
   },
   wrapper: {
-    height: '80%',
+    height: '90%',
     padding: '1.4em',
     ...getDataGridTheme(theme),
   },
@@ -64,6 +65,7 @@ const HomeScreen = (props: HomeScreenProps) => {
   const { t } = useTranslation();
   const classes = useStyles();
   const { user } = useAuthState();
+  const preferences = usePreferences();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setLoading] = useState(true);
 
@@ -177,7 +179,8 @@ const HomeScreen = (props: HomeScreenProps) => {
             }}
             rows={assignments}
             columns={columns}
-            pageSize={15}
+            density={preferences.density}
+            pageSize={20}
             loading={isLoading}
             paginationMode="client"
             getRowId={(r) => r.assignmentId}/>

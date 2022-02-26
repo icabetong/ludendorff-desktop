@@ -20,6 +20,7 @@ const gray50 = '#f9fafb';
 const gray100 = '#f3f4f6';
 const gray300 = '#d1d5db';
 const gray500 = '#6b7280';
+const gray600 = '#4b5563';
 const gray700 = '#374151';
 const gray800 = '#1f2937';
  
@@ -136,7 +137,7 @@ const darkTheme = createTheme({
     text: {
       primary: gray100
     },
-    divider: gray700
+    divider: gray600
   }
 })
 
@@ -172,7 +173,16 @@ export const CoreComponent = () => {
 
 export const getDataGridTheme = (theme: Theme) => {
   return {
+    '& .MuiDataGrid-toolbarContainer': {
+      paddingTop: theme.spacing(1),
+      paddingBottom: theme.spacing(1),
+      backgroundColor: theme.palette.type === 'dark' ? gray700: gray100,
+      borderBottom: '1px',
+      borderBottomStyle: 'solid',
+      borderBottomColor: theme.palette.divider
+    },
     '& .MuiDataGrid-root': {
+      backgroundColor: 'transparent',
       borderColor: theme.palette.divider
     },
     '& .MuiDataGrid-columnsContainer': {
@@ -180,6 +190,9 @@ export const getDataGridTheme = (theme: Theme) => {
     },
     '& .MuiDataGrid-columnSeparator': {
       color: theme.palette.divider
+    },
+    '& .MuiDataGrid-cell': {
+      borderBottomColor: theme.palette.divider
     }
   }
 }

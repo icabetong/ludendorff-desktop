@@ -23,6 +23,7 @@ import {
   AddRounded,
   AssignmentRounded,
   SaveAltOutlined,
+  SearchOutlined
 } from "@material-ui/icons";
 import { jsPDF } from "jspdf";
 import { onSnapshot, query, collection, orderBy } from "firebase/firestore";
@@ -65,7 +66,7 @@ const useStyles = makeStyles((theme) => ({
     width: '100%', height: '100%'
   },
   wrapper: {
-    height: '80%',
+    height: '90%',
     padding: '1.4em',
     ...getDataGridTheme(theme)
   }
@@ -250,8 +251,7 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
           title={t("navigation.assignments")}
           buttonText={isAdmin ? t("button.create_assignment") : undefined}
           buttonIcon={AddRounded}
-          buttonOnClick={onAssignmentEditorView}
-          onSearch={onSearchInvoke}/>
+          buttonOnClick={onAssignmentEditorView}/>
       </Hidden>
       <Hidden mdUp>
         <ComponentHeader
@@ -276,6 +276,7 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                 }}
                 componentsProps={{
                   toolbar: {
+                    endAction: <IconButton size="small" onClick={onSearchInvoke}><SearchOutlined/></IconButton>,
                     destinations: [
                       <Button
                         key="requests"
@@ -291,7 +292,7 @@ const AssignmentScreen = (props: AssignmentScreenProps) => {
                 rows={assignments}
                 columns={columns}
                 density={preferences.density}
-                pageSize={15}
+                pageSize={20}
                 loading={isLoading}
                 paginationMode="client"
                 getRowId={(r) => r.assignmentId}
