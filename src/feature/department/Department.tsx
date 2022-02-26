@@ -1,64 +1,65 @@
-import { firestore } from "../../index"
+import { firestore } from "../..";
+import { deleteDoc, writeBatch, doc } from "firebase/firestore";
 
 import { UserCore } from "../user/User";
 import { minimize as minimizeDepartment } from "./Department";
 
 import {
-    departmentCollection,
-    userCollection,
-    department as departmentField
+  departmentCollection,
+  userCollection,
+  department as departmentField
 } from "../../shared/const";
 
 export const minimize = (department: Department): DepartmentCore => {
-    return {
-        departmentId: department.departmentId,
-        name: department.name
-    }
+  return {
+    departmentId: department.departmentId,
+    name: department.name
+  }
 }
 
 export type Department = {
-    departmentId: string,
-    name?: string,
-    manager?: UserCore,
-    count: number
+  departmentId: string,
+  name?: string,
+  manager?: UserCore,
+  count: number
 }
 
 export type DepartmentCore = {
-    departmentId: string,
-    name?: string
+  departmentId: string,
+  name?: string
 }
 
 export class DepartmentRepository {
-    static async create(department: Department): Promise<void> {
-        let batch = firestore.batch();
+  static async create(department: Department): Promise<void> {
+    let batch = writeBatch(firestore);
 
-        batch.set(firestore.collection(departmentCollection)
-            .doc(department.departmentId), department);
-    
-        if (department.manager !== undefined)
-            batch.update(firestore.collection(userCollection)
-                .doc(department.manager!.userId), departmentField,
-                minimizeDepartment(department))
+    batch.set(doc(firestore, departmentCollection, 
+      department.departmentId), department);
 
-        return batch.commit()
-    }
+    if (department.manager !== undefined)
+      batch.update(doc(firestore, departmentCollection, 
+        department.departmentId), departmentField,
+        minimizeDepartment(department))
 
-    static async update(department: Department): Promise<void> {
-        let batch = firestore.batch();
+    return await batch.commit();
+  }
 
-        if (department.manager !== undefined)
-            batch.update(firestore.collection(userCollection)
-                .doc(department.manager!.userId), departmentField,
-                minimizeDepartment(department))
+  static async update(department: Department): Promise<void> {
+    let batch = writeBatch(firestore);
 
-        return await firestore.collection(departmentCollection)
-            .doc(department.departmentId)
-            .set(department)
-    }
+    if (department.manager !== undefined)
+      batch.update(doc(firestore, userCollection, 
+        department.departmentId), departmentField,
+        minimizeDepartment(department))
 
-    static async remove(department: Department): Promise<void> {
-        return await firestore.collection(departmentCollection)
-            .doc(department.departmentId)
-            .delete()
-    }
+    batch.set(doc(firestore, departmentCollection, department.departmentId), 
+      department);
+
+    return await batch.commit();
+  }
+
+  static async remove(department: Department): Promise<void> {
+    return await deleteDoc(doc(firestore, departmentCollection, 
+      department.departmentId))
+  }
 }
