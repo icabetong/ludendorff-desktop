@@ -63,7 +63,7 @@
     "workbox-strategies": "^5.1.4",
     "workbox-streams": "^5.1.4"
   },
-  "main": "electron.js",
+  "main": "./src/main.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -141,7 +141,7 @@
     "@types/react-router-dom": "^5.1.8",
     "concurrently": "^6.2.0",
     "cross-env": "^7.0.3",
-    "electron": "^13.1.7",
+    "electron": "^17.1.0",
     "electron-builder": "^22.14.5",
     "electron-builder-squirrel-windows": "^22.14.10",
     "electron-icon-builder": "^2.0.1",
