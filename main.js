@@ -15,9 +15,8 @@ const createWindow = () => {
   });
   window.removeMenu();
 
-  const appUrl = process.env.ELECTRON_START_URL || url.format({ pathname: path.join(__dirname, '../build/index.html'), protocol: 'file:', slashes: true });
+  const appUrl = process.env.ELECTRON_START_URL || url.format({ pathname: path.join(__dirname, 'build/index.html'), protocol: 'file:', slashes: true });
   window.loadURL(appUrl);
-  window.webContents.openDevTools();
 
   window.on('closed', () => { window = null });
 }
