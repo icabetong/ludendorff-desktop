@@ -63,7 +63,7 @@
     "workbox-strategies": "^5.1.4",
     "workbox-streams": "^5.1.4"
   },
-  "main": "./src/main.js",
+  "main": "main.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -114,7 +114,7 @@
     "files": [
       "assets/**/*",
       "build/**/*",
-      "electron.js",
+      "main.js",
       "package.json"
     ],
     "extends": null
