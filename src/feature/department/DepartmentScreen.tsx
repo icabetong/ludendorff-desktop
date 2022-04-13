@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from "react";
+import { useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -11,11 +11,10 @@ import {
   ListItemText,
   useMediaQuery,
   useTheme,
-  makeStyles
-} from "@material-ui/core";
-import { InstantSearch, connectHits } from "react-instantsearch-dom";
+} from "@mui/material";
+import { connectHits, InstantSearch } from "react-instantsearch-dom";
 import { HitsProvided } from "react-instantsearch-core";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, orderBy, query } from "firebase/firestore";
 
 import { Department } from "./Department";
 import DepartmentEditor from "./DepartmentEditor";
@@ -24,27 +23,13 @@ import DepartmentList from "./DepartmentList";
 import { usePermissions } from "../auth/AuthProvider";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import CustomDialogTitle from "../../components/CustomDialogTitle";
-import { SearchBox, Highlight, Provider, Results } from "../../components/Search";
-import { departmentCollection, departmentName, departmentManagerName } from "../../shared/const";
+import { Highlight, Provider, Results, SearchBox } from "../../components/Search";
+import { departmentCollection, departmentManagerName, departmentName } from "../../shared/const";
 
 import { firestore } from "../../index";
-
-const useStyles = makeStyles(() => ({
-  root: {
-    minHeight: '60vh',
-    paddingTop: 0,
-    paddingBottom: 0,
-    '& .MuiList-padding': {
-      padding: 0
-    }
-  },
-  search: {
-    minHeight: '60vh'
-  },
-  searchBox: {
-    margin: '0.6em 1em'
-  }
-}));
+import { PaginationController } from "../../components/PaginationController";
+import { usePagination } from "use-pagination-firestore";
+import useQueryLimit from "../shared/useQueryLimit";
 
 type DepartmentScreenProps = {
   isOpen: boolean,
@@ -54,28 +39,17 @@ type DepartmentScreenProps = {
 const DepartmentScreen = (props: DepartmentScreenProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
-  const classes = useStyles();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { canRead, canWrite } = usePermissions();
+  const { limit } = useQueryLimit('departmentQueryLimit');
   const [state, dispatch] = useReducer(reducer, initialState);
   const [search, setSearch] = useState(false);
-  const [isLoading, setLoading] = useState(true);
-  const [departments, setDepartments] = useState<Department[]>([]);
 
-  useEffect(() => {
-    let mounted = true;
-    const unsubscribe = onSnapshot(query(collection(firestore, departmentCollection), orderBy(departmentName, "asc")), (snapshot) => {
-      if (mounted) {
-        setDepartments(snapshot.docs.map((doc) => doc.data() as Department));
-        setLoading(false);
-      }
-    })
-
-    return () => {
-      mounted = false;
-      unsubscribe();
+  const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<Department>(
+    query(collection(firestore, departmentCollection), orderBy(departmentName, "asc")), {
+      limit: limit,
     }
-  }, []);
+  )
 
   const onSearchInvoked = () => setSearch(!search);
 
@@ -95,34 +69,56 @@ const DepartmentScreen = (props: DepartmentScreenProps) => {
         open={props.isOpen}
         onClose={props.onDismiss}>
         <CustomDialogTitle onSearch={onSearchInvoked}>{t("navigation.departments")}</CustomDialogTitle>
-        <DialogContent dividers={true} className={classes.root}>
+        <DialogContent
+          dividers={true}
+          sx={{
+            minHeight: '60vh',
+            paddingX: 0,
+            '& .MuiList-padding': { padding: 0 }
+          }}>
           {search
             ?
             <Box>
-              <InstantSearch searchClient={Provider} indexName="departments">
-                <Box className={classes.searchBox}>
-                  <SearchBox />
+              <InstantSearch
+                searchClient={Provider}
+                indexName="departments">
+                <Box sx={{ margin: '0.6em 1em' }}>
+                  <SearchBox/>
                 </Box>
-                <Box className={classes.search}>
+                <Box sx={{minHeight: '100%'}}>
                   <Results>
-                    <DepartmentHits onItemSelect={onEditorUpdate} />
+                    <DepartmentHits onItemSelect={onEditorUpdate}/>
                   </Results>
                 </Box>
               </InstantSearch>
             </Box>
             : canRead
               ? !isLoading
-                ? <DepartmentList
-                    departments={departments}
-                    onItemSelect={onEditorUpdate} />
-                : <LinearProgress />
-              : <ErrorNoPermissionState />
+                ? <>
+                  <DepartmentList
+                    departments={items}
+                    onItemSelect={onEditorUpdate}/>
+                  {isEnd && items.length > 0 && items.length === limit &&
+                    <PaginationController
+                      canBack={isStart}
+                      canForward={isEnd}
+                      onBackward={getPrev}
+                      onForward={getNext}/>
+                  }
+                </>
+                : <LinearProgress/>
+              : <ErrorNoPermissionState/>
           }
         </DialogContent>
         <DialogActions>
-          <Button color="primary" onClick={onEditorCreate} disabled={!canWrite}>{t("button.add")}</Button>
-          <div style={{ flex: '1 0 0' }}></div>
-          <Button color="primary" onClick={props.onDismiss}>{t("button.close")}</Button>
+          <Button
+            color="primary"
+            onClick={onEditorCreate}
+            disabled={!canWrite}>{t("button.add")}</Button>
+          <Box sx={{ flex: '1 0 0' }}/>
+          <Button
+            color="primary"
+            onClick={props.onDismiss}>{t("button.close")}</Button>
         </DialogActions>
       </Dialog>
       {state.isOpen &&
@@ -130,7 +126,7 @@ const DepartmentScreen = (props: DepartmentScreenProps) => {
           isOpen={state.isOpen}
           isCreate={state.isCreate}
           department={state.department}
-          onDismiss={onEditorDismiss} />
+          onDismiss={onEditorDismiss}/>
       }
     </>
   )
@@ -144,8 +140,11 @@ type DepartmentHitsListProps = HitsProvided<Department> & {
 const DepartmentHitsList = (props: DepartmentHitsListProps) => {
   return (
     <>
-      {props.hits.map((d: Department) => (
-        <DepartmentListItem department={d} onItemSelect={props.onItemSelect} />
+      {props.hits.map((department: Department) => (
+        <DepartmentListItem
+          key={department.departmentId}
+          department={department}
+          onItemSelect={props.onItemSelect}/>
       ))
       }
     </>
@@ -164,8 +163,12 @@ const DepartmentListItem = (props: DepartmentListItemProps) => {
       key={props.department.departmentId}
       onClick={() => props.onItemSelect(props.department)}>
       <ListItemText
-        primary={<Highlight attribute={departmentName} hit={props.department} />}
-        secondary={<Highlight attribute={departmentManagerName} hit={props.department} />} />
+        primary={<Highlight
+          attribute={departmentName}
+          hit={props.department}/>}
+        secondary={<Highlight
+          attribute={departmentManagerName}
+          hit={props.department}/>}/>
     </ListItem>
   )
 }

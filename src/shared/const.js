@@ -1,29 +1,33 @@
 export const assetCollection = "assets";
-export const categoryCollection = "categories";
+export const typeCollection = "types";
 export const userCollection = "users";
 export const departmentCollection = "departments";
-export const assignmentCollection = "assignments";
-export const requestCollection = "requests";
+export const inventoryCollection = "inventories";
+export const issuedCollection = "issued";
+export const stockCardCollection = "cards";
 
-export const categoryId = "categoryId";
-export const categoryName = "categoryName";
-export const categoryCount = "count";
+export const typeId = "typeId";
+export const typeName = "typeName";
+export const typeCount = "count";
 
-export const assetId = "assetId";
-export const assetName = "assetName";
+export const assetStockNumber = "stockNumber";
+export const assetDescription = "description";
+export const assetClassification = "classification";
+export const assetUnitOfMeasure = "unitOfMeasure";
+export const assetUnitValue = "unitValue";
+export const assetRemarks = "remarks";
 export const dateCreated = "dateCreated";
 export const assetStatus = "status";
-export const assetCategory = "category";
-export const assetCategoryId = `${assetCategory}.${categoryId}`
-export const assetCategoryName = `${assetCategory}.${categoryName}`
-export const specifications = "specifications";
+export const assetType = "type";
+export const assetTypeId = `${ assetType }.${ typeId }`
+export const assetTypeName = `${ assetType }.${ typeName }`
 
 export const userId = "userId";
 export const departmentId = "departmentId";
 export const departmentName = "name";
 export const departmentManager = "manager";
-export const departmentManagerId = `${departmentManager}.${userId}`;
-export const departmentManagerName = `${departmentManager}.name`;
+export const departmentManagerId = `${ departmentManager }.${ userId }`;
+export const departmentManagerName = `${ departmentManager }.name`;
 export const departmentCount = "count";
 
 export const firstName = "firstName";
@@ -33,33 +37,40 @@ export const imageUrl = "imageUrl";
 export const permissions = "permissions";
 export const position = "position";
 export const department = "department";
-export const userDepartmentId = `${department}.${departmentId}`;
-export const userDepartmentName = `${department}.${departmentName}`;
+export const userDepartmentId = `${ department }.${ departmentId }`;
+export const userDepartmentName = `${ department }.${ departmentName }`;
 
-export const assignmentId = "assignmentId";
-export const assignmentAsset = "asset";
-export const assignmentAssetId = `${assignmentAsset}.${assetId}`;
-export const assignmentAssetName = `${assignmentAsset}.${assetName}`;
-export const assignmentAssetStatus = `${assignmentAsset}.${assetStatus}`;
-export const assignmentAssetCategory = `${assignmentAsset}.${assetCategory}`;
-export const assignmentAssetCategoryId = `${assignmentAsset}.${assetCategory}.${categoryId}`;
-export const assignmentAssetCategoryName = `${assignmentAsset}.${assetCategoryName}`
-export const assignmentUser = "user";
-export const assignmentUserId = `${assignmentUser}.${userId}`;
-export const assignmentUserEmail = `${assignmentUser}.${email}`;
-export const assignmentUserPosition = `${assignmentUser}.${position}`;
-export const dateAssigned = "dateAssigned";
-export const dateReturned = "dateReturned";
-export const location = "location";
+export const inventoryReportId = "inventoryReportId"
+export const fundCluster = "fundCluster"
+export const entityName = "entityName"
+export const entityPosition = "entityPosition"
+export const yearMonth = "yearMonth"
+export const accountabilityDate = "accountabilityDate"
+export const items = "items"
+
+export const issuedReportId = "issuedReportId";
+export const serialNumber = "serialNumber";
+export const date = "date";
+
+export const quantityIssued = "quantityIssued";
+export const unitCost = "unitCost";
+export const responsibilityCenter = "responsibilityCenter";
+
+export const article = "article";
+export const unitValue = "unitValue";
+export const balancePerCard = "balancePerCard";
+export const onHandCount = "onHandCount";
 export const remarks = "remarks";
 
-export const requestId = "requestId";
-export const requestedAsset = "asset";
-export const requestedAssetName = `${requestedAsset}.${assetName}`;
-export const petitioner = "petitioner"
-export const petitionerId = `${petitioner}.${userId}`;
-export const petitionerName = `${petitioner}.name`;
-export const endorser = "endorser";
-export const endorserId = `${endorser}.${userId}`;
-export const endorserName = `${endorser}.name`;
-export const submittedDate = "submittedTimestamp";
+export const stockCardId = "stockCardId";
+export const unitPrice = "unitPrice";
+export const entries = "entries";
+
+export const stockCardEntryId = "stockCardEntryId";
+export const reference = "reference";
+export const receiptQuantity = "receiptQuantity";
+export const requestQuantity = "requestQuantity";
+export const issueQuantity = "issueQuantity";
+export const issueOffice = "issueOffice";
+export const balanceQuantity = "balanceQuantity";
+export const balanceTotalPrice = "balanceTotalPrice";

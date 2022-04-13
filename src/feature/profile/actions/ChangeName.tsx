@@ -1,15 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
-import {
-  Button,
-  Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField,
-} from "@material-ui/core";
+import { Button, Container, Dialog, DialogActions, DialogContent, DialogTitle, TextField, } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { useAuthState } from "../../auth/AuthProvider";
 import { User, UserRepository } from "../../user/User";
@@ -84,17 +76,17 @@ const ChangeNamePrompt = (props: ChangeNamePromptProps) => {
           </Container>
         </DialogContent>
         <DialogActions>
-          <Button 
-            color="primary" 
+          <Button
+            color="primary"
             disabled={submitting}
             onClick={props.onDismiss}>
             {t("button.cancel")}
           </Button>
-          <Button 
+          <Button
             color="primary"
             type="submit"
             disabled={submitting}>
-            {submitting ? t("feedback.saving") :t("button.continue")}
+            {submitting ? t("feedback.saving") : t("button.continue")}
           </Button>
         </DialogActions>
       </form>

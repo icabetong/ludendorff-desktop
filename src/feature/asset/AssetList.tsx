@@ -1,8 +1,4 @@
-import {
-  List,
-  ListItem,
-  ListItemText
-} from "@material-ui/core";
+import { List, ListItem, ListItemText } from "@mui/material";
 
 import { Asset } from "./Asset";
 
@@ -17,10 +13,10 @@ const AssetList = (props: AssetListProps) => {
       props.assets.map((asset: Asset) => {
         return (
           <AssetItem
-            key={asset.assetId}
+            key={asset.stockNumber}
             asset={asset}
             onItemSelect={props.onItemSelect}
-            onItemRemove={props.onItemRemove} />
+            onItemRemove={props.onItemRemove}/>
         )
       })
     }</List>
@@ -36,11 +32,11 @@ const AssetItem = (props: AssetItemProps) => {
   return (
     <ListItem
       button
-      key={props.asset.assetId}
+      key={props.asset.stockNumber}
       onClick={() => props.onItemSelect(props.asset)}>
       <ListItemText
-        primary={props.asset.assetName}
-        secondary={props.asset.category?.categoryName} />
+        primary={props.asset.description}
+        secondary={props.asset.type?.typeName}/>
     </ListItem>
   )
 }

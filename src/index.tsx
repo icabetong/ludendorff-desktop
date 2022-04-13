@@ -11,16 +11,7 @@ import * as serviceWorker from "./serviceWorkerRegistration";
 
 import './index.css';
 import './localization';
-
-const configDev = {
-  apiKey: process.env.REACT_APP_BACKEND_API_KEY_DEV,
-  authDomain: process.env.REACT_APP_BACKEND_DOMAIN_DEV,
-  projectId: process.env.REACT_APP_PROJECT_ID_DEV,
-  storageBucket: process.env.REACT_APP_STORAGE_BUCKET_DEV,
-  messagingSenderId: process.env.REACT_APP_MESSAGE_SENDER_ID_DEV,
-  appId: process.env.REACT_APP_APP_ID_DEV,
-  measurementId: process.env.REACT_APP_MEASUREMENT_ID_DEV
-}
+import { Font } from "@react-pdf/renderer";
 
 const config = {
   apiKey: process.env.REACT_APP_BACKEND_API_KEY,
@@ -32,16 +23,35 @@ const config = {
   measurementId: process.env.REACT_APP_MEASUREMENT_ID
 }
 const firebaseApp = initializeApp(config);
-//const firebaseApp = initializeApp(!process.env.NODE_ENV || process.env.NODE_ENV === 'development' ? configDev : config);
 const auth = getAuth(firebaseApp);
 const firestore = initializeFirestore(firebaseApp, { ignoreUndefinedProperties: true });
 export { firebaseApp, auth, firestore };
+
+Font.register({
+  family: 'Inter',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/inter/v8/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZg.ttf' },
+    {
+      src: 'https://fonts.gstatic.com/s/inter/v8/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fMZg.ttf',
+      fontWeight: 500
+    },
+    {
+      src: 'https://fonts.gstatic.com/s/inter/v8/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYMZg.ttf',
+      fontWeight: 600
+    },
+    {
+      src: 'https://fonts.gstatic.com/s/inter/v8/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYMZg.ttf',
+      fontWeight: 700
+    }
+  ]
+})
+
 
 ReactDOM.render(
   <React.StrictMode>
     <AuthProvider>
       <PreferenceProvider>
-        <CoreComponent />
+        <CoreComponent/>
       </PreferenceProvider>
     </AuthProvider>
   </React.StrictMode>,

@@ -2,6 +2,10 @@ import { Timestamp } from "@firebase/firestore-types";
 
 const assert = require('assert');
 
+export const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+export const SERVER_URL = "https://deshi-production.up.railway.app";
+export const isDev = process.env.NODE_ENV === 'development'
+
 export const newId = (): string => {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let id = ''

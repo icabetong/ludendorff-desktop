@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext, } from "react";
-import { GridDensity } from "@material-ui/data-grid";
+import React, { useContext, useEffect, useState, } from "react";
+import { GridDensity } from "@mui/x-data-grid";
 
 type Preferences = {
   theme: string,
@@ -18,14 +18,19 @@ type PreferencesContext = {
 
 export const PreferenceContext = React.createContext<PreferencesContext>({
   preferences: defaultPreferences,
-  setPreferences: () => { }
+  setPreferences: () => {
+  }
 });
 
 export const PreferenceProvider: React.FC = ({ children }) => {
   const [preferences, setPreferences] = useState<Preferences>(defaultPreferences);
 
   useEffect(() => {
-    onPreferenceFetch();
+    onPreferenceFetch()
+      .then(() => {
+      })
+      .catch((e) => {
+      });
   }, [])
 
   const onPreferenceFetch = async () => {
@@ -33,9 +38,9 @@ export const PreferenceProvider: React.FC = ({ children }) => {
     setPreferences(JSON.parse(userPreferences !== null ? userPreferences : JSON.stringify(defaultPreferences)));
   }
 
-  const onPreferenceChanged = (pref: Preferences) => {
+  const onPreferenceChanged = async (pref: Preferences) => {
     localStorage.setItem("preferences", JSON.stringify(pref));
-    onPreferenceFetch();
+    await onPreferenceFetch();
   }
 
   return (

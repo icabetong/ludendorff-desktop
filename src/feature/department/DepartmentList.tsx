@@ -1,36 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Tooltip,
-  makeStyles
-} from "@material-ui/core";
-import {
-  DeleteOutlineRounded,
-  DomainOutlined
-} from "@material-ui/icons";
+import { IconButton, List, ListItem, ListItemSecondaryAction, ListItemText, Tooltip } from "@mui/material";
+import { DeleteOutlineRounded, DomainOutlined } from "@mui/icons-material";
 import { useSnackbar } from "notistack";
 
 import EmptyStateComponent from "../state/EmptyStates";
-import HeroIconButton from "../../components/HeroIconButton";
 
 import { usePermissions } from "../auth/AuthProvider";
 import { Department, DepartmentRepository } from "./Department";
 import ConfirmationDialog from "../shared/ConfirmationDialog";
-
-const useStyles = makeStyles((theme) => ({
-  root: {
-    minHeight: '60vh'
-  },
-  uiIcon: {
-    width: '4em',
-    height: '4em',
-    color: theme.palette.text.primary
-  },
-}));
+import { isDev } from "../../shared/utils";
 
 type DepartmentListProps = {
   departments: Department[],
@@ -38,7 +17,6 @@ type DepartmentListProps = {
 }
 
 const DepartmentList = (props: DepartmentListProps) => {
-  const classes = useStyles();
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const [department, setDepartment] = useState<Department | undefined>(undefined);
@@ -50,7 +28,10 @@ const DepartmentList = (props: DepartmentListProps) => {
     if (department !== undefined) {
       DepartmentRepository.remove(department)
         .then(() => enqueueSnackbar(t("feedback.department_removed")))
-        .catch(() => enqueueSnackbar(t("feedback.department_remove_error")))
+        .catch((error) => {
+          enqueueSnackbar(t("feedback.department_remove_error"));
+          if (isDev) console.log(error)
+        })
         .finally(onRemoveDismiss)
     }
   }
@@ -58,7 +39,7 @@ const DepartmentList = (props: DepartmentListProps) => {
   return (
     <>
       {props.departments.length > 0
-        ? <List className={classes.root}>
+        ? <List sx={{ minHeight: '100%' }}>
           {
             props.departments.map((department: Department) => {
               return (
@@ -66,24 +47,22 @@ const DepartmentList = (props: DepartmentListProps) => {
                   key={department.departmentId}
                   department={department}
                   onItemSelect={props.onItemSelect}
-                  onItemRemove={onRemoveInvoke} />
+                  onItemRemove={onRemoveInvoke}/>
               )
             })
           }
-          </List>
+        </List>
         : <EmptyStateComponent
           icon={DomainOutlined}
-          title={t("empty_department")}
-          subtitle={t("empty_department_summary")} />
+          title={t("empty.department")}
+          subtitle={t("empty.department_summary")}/>
       }
-      {department &&
-        <ConfirmationDialog
-          isOpen={department !== undefined}
-          title="dialog.department_remove"
-          summary="dialog.department_remove_summary"
-          onDismiss={onRemoveDismiss}
-          onConfirm={onDepartmentRemove} />
-      }
+      <ConfirmationDialog
+        isOpen={department !== undefined}
+        title="dialog.department_remove"
+        summary="dialog.department_remove_summary"
+        onDismiss={onRemoveDismiss}
+        onConfirm={onDepartmentRemove}/>
     </>
   );
 }
@@ -99,12 +78,13 @@ const DepartmentItem = (props: DepartmentItemProps) => {
   const { canDelete } = usePermissions();
 
   const deleteButton = (
-    <HeroIconButton
-      icon={DeleteOutlineRounded}
+    <IconButton
       edge="end"
       disabled={props.department.count > 0}
       aria-label={t("delete")}
-      onClick={() => props.onItemRemove(props.department)} />
+      onClick={() => props.onItemRemove(props.department)}>
+      <DeleteOutlineRounded/>
+    </IconButton>
   );
 
   return (
@@ -114,7 +94,7 @@ const DepartmentItem = (props: DepartmentItemProps) => {
       onClick={() => props.onItemSelect(props.department)}>
       <ListItemText
         primary={props.department.name}
-        secondary={props.department.manager?.name} />
+        secondary={props.department.manager?.name}/>
       {canDelete &&
         <ListItemSecondaryAction>
           {props.department.count > 0

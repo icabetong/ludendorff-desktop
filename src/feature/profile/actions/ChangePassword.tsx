@@ -1,16 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
-import {
-  Button,
-  Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField
-} from "@material-ui/core";
+import { Button, Container, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
 import { useSnackbar } from "notistack";
-import { reauthenticateWithCredential, updatePassword, EmailAuthProvider } from "firebase/auth";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { auth } from "../../../index";
 
 type ChangePasswordPromptProps = {
@@ -71,19 +63,29 @@ const ChangePasswordPrompt = (props: ChangePasswordPromptProps) => {
               type="password"
               label={t("field.new_password")}
               error={errors.newPassword !== undefined}
-              {...register("newPassword", { required: true, validate: value => value === getValues('confirmPassword') })} />
+              {...register("newPassword", {
+                required: true,
+                validate: value => value === getValues('confirmPassword')
+              })} />
 
             <TextField
               id="confirm-password"
               type="password"
               error={errors.confirmPassword !== undefined}
               label={t("field.confirmation_password")}
-              {...register("confirmPassword", { required: true, validate: value => value === getValues('newPassword') })} />
+              {...register("confirmPassword", {
+                required: true,
+                validate: value => value === getValues('newPassword')
+              })} />
           </Container>
         </DialogContent>
         <DialogActions>
-          <Button color="primary" onClick={props.onDismiss}>{t("button.cancel")}</Button>
-          <Button color="primary" type="submit">{t("button.continue")}</Button>
+          <Button
+            color="primary"
+            onClick={props.onDismiss}>{t("button.cancel")}</Button>
+          <Button
+            color="primary"
+            type="submit">{t("button.continue")}</Button>
         </DialogActions>
       </form>
     </Dialog>

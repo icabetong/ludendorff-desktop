@@ -1,22 +1,6 @@
-import React, { FunctionComponent, ComponentClass } from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import { makeStyles } from "@material-ui/core";
-
-const useStyles = makeStyles((theme) => ({
-  root: {
-    minHeight: '60vh',
-    padding: theme.spacing(4)
-  },
-  icon: {
-    width: '2em',
-    height: '2em',
-    color: theme.palette.text.primary
-  },
-  text: {
-    textAlign: 'center'
-  }
-}));
+import React, { ComponentClass, FunctionComponent } from "react";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
 
 type EmptyStateComponentPropsType = {
   icon: FunctionComponent<any> | ComponentClass<any, any>,
@@ -25,23 +9,28 @@ type EmptyStateComponentPropsType = {
 }
 
 const EmptyStateComponent = (props: EmptyStateComponentPropsType) => {
-  const classes = useStyles();
-
   return (
     <Grid
       container
       direction="column"
       alignItems="center"
       justifyContent="center"
-      className={classes.root}>
+      sx={{
+        height: '100%',
+        padding: 4
+      }}>
       <Grid item>
-        {React.createElement(props.icon, { className: classes.icon })}
+        {React.createElement(props.icon, { fontSize: "large" })}
       </Grid>
       <Grid item>
-        <Typography variant="h6" className={classes.text}>{props.title}</Typography>
+        <Typography
+          variant="h6"
+          sx={{ textAlign: 'center' }}>{props.title}</Typography>
       </Grid>
       <Grid item>
-        <Typography variant="subtitle1" className={classes.text}>{props.subtitle}</Typography>
+        <Typography
+          variant="subtitle1"
+          sx={{ textAlign: 'center' }}>{props.subtitle}</Typography>
       </Grid>
     </Grid>
   )

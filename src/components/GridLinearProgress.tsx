@@ -1,12 +1,12 @@
-import { GridOverlay } from "@material-ui/data-grid";
-import LinearProgress from "@material-ui/core/LinearProgress";
+import { GridOverlay } from "@mui/x-data-grid";
+import { Box, LinearProgress } from "@mui/material";
 
 const GridLinearProgress = () => {
   return (
     <GridOverlay>
-      <div style={{ position: 'absolute', top: 0, width: '100%' }}>
-        <LinearProgress />
-      </div>
+      <Box sx={{ position: 'absolute', top: 0, width: '100%' }}>
+        <LinearProgress/>
+      </Box>
     </GridOverlay>
   )
 }

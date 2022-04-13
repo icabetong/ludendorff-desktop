@@ -1,16 +1,10 @@
 import React from "react";
-import { makeStyles } from "@material-ui/core/styles";
-import {
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction
-} from "@material-ui/core";
+import makeStyles from '@mui/styles/makeStyles';
+import { List, ListItem, ListItemIcon, ListItemSecondaryAction, ListItemText, Theme } from "@mui/material";
 
 import { Setting } from "./Settings";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles((theme: Theme) => ({
   icon: {
     width: '1.2em',
     height: '1.2em',
@@ -26,7 +20,7 @@ const SettingsList = (props: SettingsListProps) => {
   return (
     <List>
       {props.preferences.map((preference: Setting) => {
-        return <SettingsItem preference={preference} />
+        return <SettingsItem key={preference.key} preference={preference}/>
       })
       }
     </List>
@@ -51,7 +45,7 @@ const SettingsItem = (props: SettingsItemProp) => {
       }
       <ListItemText
         primary={props.preference.title}
-        secondary={props.preference.summary} />
+        secondary={props.preference.summary}/>
       {props.preference.action &&
         <ListItemSecondaryAction>{props.preference.action}</ListItemSecondaryAction>
       }

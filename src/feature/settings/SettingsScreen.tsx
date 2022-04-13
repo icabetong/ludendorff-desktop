@@ -1,24 +1,12 @@
-import { useContext, useState } from "react";
+import React, { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Box,
-  Hidden,
-  IconButton,
-  Menu,
-  MenuItem,
-  Switch
-} from "@material-ui/core";
-import {
-  PaletteOutlined,
-  TableChartOutlined,
-  ChevronRightRounded,
-} from "@material-ui/icons";
+import { Box, IconButton, Menu, MenuItem, Switch } from "@mui/material";
+import { ChevronRightRounded, PaletteOutlined, TableChartOutlined, } from "@mui/icons-material";
 
-import ComponentHeader from "../../components/ComponentHeader";
-import PageHeader from "../../components/PageHeader";
 import { PreferenceContext } from "./Preference";
-import { Setting } from "../settings/Settings";
+import { Setting } from "./Settings";
 import SettingsList from "../settings/SettingsList";
+import AdaptiveHeader from "../../components/AdaptiveHeader";
 
 type SettingsScreenProps = {
   onDrawerToggle: () => void,
@@ -29,8 +17,12 @@ const SettingsScreen = (props: SettingsScreenProps) => {
   const userPreferences = useContext(PreferenceContext);
 
   const [densityMenuAnchor, setDensityMenuAnchor] = useState<null | HTMLElement>(null);
-  const onDensityMenuView = (e: React.MouseEvent<HTMLElement>) => { setDensityMenuAnchor(e.currentTarget); }
-  const onDensityMenuDismiss = () => { setDensityMenuAnchor(null) }
+  const onDensityMenuView = (e: React.MouseEvent<HTMLElement>) => {
+    setDensityMenuAnchor(e.currentTarget);
+  }
+  const onDensityMenuDismiss = () => {
+    setDensityMenuAnchor(null)
+  }
 
   const onDensityMenuItemClick = (density: string) => {
     userPreferences.setPreferences({
@@ -53,7 +45,10 @@ const SettingsScreen = (props: SettingsScreenProps) => {
       title: t("settings.dark_theme"),
       summary: t("settings.dark_theme_summary"),
       icon: PaletteOutlined,
-      action: <Switch edge="end" checked={userPreferences.preferences.theme === 'dark'} onChange={onTriggerThemeChanged} />
+      action: <Switch
+        edge="end"
+        checked={userPreferences.preferences.theme === 'dark'}
+        onChange={onTriggerThemeChanged}/>
     }, {
       key: 'preference:density',
       title: t("settings.table_row_density"),
@@ -63,7 +58,8 @@ const SettingsScreen = (props: SettingsScreenProps) => {
         <IconButton
           aria-controls="density-menu"
           aria-haspopup="true"
-          onClick={onDensityMenuView}>
+          onClick={onDensityMenuView}
+          size="large">
           <ChevronRightRounded/>
         </IconButton>
         <Menu
@@ -93,19 +89,13 @@ const SettingsScreen = (props: SettingsScreenProps) => {
   ]
 
   return (
-    <Box>
-      <Hidden smDown>
-        <PageHeader
-          title={t("navigation.settings")}/>
-      </Hidden>
-      <Hidden mdUp>
-        <ComponentHeader 
-          title={t("navigation.settings")} 
-          onDrawerToggle={props.onDrawerToggle} />
-      </Hidden>
-      <SettingsList preferences={preferences} />
+    <Box sx={{ width: '100%' }}>
+      <AdaptiveHeader
+        title={t("navigation.settings")}
+        onDrawerTriggered={props.onDrawerToggle}/>
+      <SettingsList preferences={preferences}/>
     </Box>
-  )
+  );
 }
 
 export default SettingsScreen;

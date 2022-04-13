@@ -1,11 +1,11 @@
-import React, { useState, useRef, Suspense, lazy } from "react";
+import React, { lazy, Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Redirect } from "react-router";
 import { withRouter, } from "react-router-dom";
 import {
-  AppBar, 
-  Box, 
-  Button, 
+  AppBar,
+  Box,
+  Button,
   ClickAwayListener,
   Dialog,
   DialogActions,
@@ -15,40 +15,38 @@ import {
   Divider,
   Drawer,
   Grow,
-  Hidden, 
+  Hidden,
+  lighten,
   ListItemIcon,
   ListItemText,
-  MenuList, 
-  MenuItem, 
-  Popper, 
-  Paper, 
-  Toolbar, 
-  useMediaQuery,
-  useTheme, 
-  makeStyles, 
+  MenuItem,
+  MenuList,
+  Paper,
+  Popper,
+  Theme,
+  Toolbar,
   Typography,
-  lighten
-} from "@material-ui/core"; 
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
+import makeStyles from '@mui/styles/makeStyles';
 import { SnackbarProvider } from "notistack";
-import { 
-  ArrowDropDown,   
-  SettingsOutlined,
-  AccountCircleOutlined,
-  ExitToAppRounded
-} from "@material-ui/icons";
+import { AccountCircleOutlined, ArrowDropDown, ExitToAppRounded, SettingsOutlined } from "@mui/icons-material";
 import { ReactComponent as Logo } from "../../shared/brand.svg";
 
 import { signOut } from "firebase/auth";
 import { AuthStatus, useAuthState } from "../auth/AuthProvider";
 import { Destination, NavigationComponent, TopNavigationComponent } from "../navigation/NavigationComponent";
 import { ErrorNotFoundState } from "../state/ErrorStates";
-import { MainLoadingStateComponent, ContentLoadingStateComponent } from "../state/LoadingStates";
+import { ContentLoadingStateComponent, MainLoadingStateComponent } from "../state/LoadingStates";
 import { auth } from "../../index";
+import IssuedReportScreen from "../issue/IssuedReportScreen";
+import StockCardScreen from "../stockcard/StockCardScreen";
 
-const HomeScreen = lazy(() => import('../home/HomeScreen'));
+
 const AssetScreen = lazy(() => import('../asset/AssetScreen'));
+const InventoryReportScreen = lazy(() => import('../inventory/InventoryReportScreen'))
 const UserScreen = lazy(() => import('../user/UserScreen'));
-const AssignmentScreen = lazy(() => import('../assignment/AssignmentScreen'));
 const ProfileScreen = lazy(() => import('../profile/ProfileScreen'));
 const SettingsScreen = lazy(() => import('../settings/SettingsScreen'));
 
@@ -59,35 +57,37 @@ type InnerComponentPropsType = {
 
 const InnerComponent = (props: InnerComponentPropsType) => {
   switch (props.destination) {
-    case Destination.HOME:
-      return <HomeScreen onDrawerToggle={props.onDrawerToggle} />
     case Destination.ASSETS:
-      return <AssetScreen onDrawerToggle={props.onDrawerToggle} />
+      return <AssetScreen onDrawerToggle={props.onDrawerToggle}/>
+    case Destination.INVENTORY:
+      return <InventoryReportScreen onDrawerToggle={props.onDrawerToggle}/>
+    case Destination.ISSUED:
+      return <IssuedReportScreen onDrawerToggle={props.onDrawerToggle}/>
+    case Destination.STOCK_CARD:
+      return <StockCardScreen onDrawerToggle={props.onDrawerToggle}/>
     case Destination.USERS:
-      return <UserScreen onDrawerToggle={props.onDrawerToggle} />
-    case Destination.ASSIGNMENTS:
-      return <AssignmentScreen onDrawerToggle={props.onDrawerToggle} />
+      return <UserScreen onDrawerToggle={props.onDrawerToggle}/>
     case Destination.PROFILE:
-      return <ProfileScreen onDrawerToggle={props.onDrawerToggle} />
+      return <ProfileScreen onDrawerToggle={props.onDrawerToggle}/>
     case Destination.SETTINGS:
-      return <SettingsScreen onDrawerToggle={props.onDrawerToggle} />
+      return <SettingsScreen onDrawerToggle={props.onDrawerToggle}/>
     default:
-      return <ErrorNotFoundState />
+      return <ErrorNotFoundState/>
   }
 }
 
 const drawerWidth = 240;
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles((theme: Theme) => ({
   root: {
     display: 'flex',
     width: '100%', // if turned into viewport width; it will cause horizontal scrollbar!
-    height: '100vh',
-    [theme.breakpoints.up('md')]: {
+    minHeight: '100vh',
+    [theme.breakpoints.up('lg')]: {
       flexDirection: 'column'
     }
   },
   nav: {
-    [theme.breakpoints.up('md')]: {
+    [theme.breakpoints.up('lg')]: {
       height: 64,
       flexShrink: 0,
     }
@@ -110,6 +110,8 @@ const useStyles = makeStyles((theme) => ({
     width: '100%',
     margin: '0 auto',
     flexGrow: 1,
+    overflowY: 'hidden',
+    display: 'flex',
     [theme.breakpoints.up('xl')]: {
       maxWidth: '1600px'
     }
@@ -125,7 +127,14 @@ const useStyles = makeStyles((theme) => ({
   },
   profile: {
     marginLeft: theme.spacing(2),
-    textTransform: 'none'
+  },
+  profileName: {
+    textTransform: 'none',
+    color: theme.palette.text.primary,
+  },
+  profileEmail: {
+    textTransform: 'none',
+    color: theme.palette.text.secondary,
   },
   profileMenu: {
     backgroundColor: lighten(theme.palette.background.paper, 0.2)
@@ -156,7 +165,7 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
     setMenuOpen((prevOpen) => !prevOpen);
   }
 
-  const onMenuDispose = (event: React.MouseEvent<Document, MouseEvent>) => {
+  const onMenuDispose = (event: MouseEvent | TouchEvent) => {
     if (anchorRef.current && anchorRef.current.contains(event.target as HTMLElement)) {
       return;
     }
@@ -168,13 +177,14 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
   }
 
   const onNavigateThenDismiss = (destination: Destination) => {
-    if (drawerOpen) 
+    if (drawerOpen)
       setDrawerOpen(false);
 
     if (menuOpen)
       setMenuOpen(false);
 
     props.onNavigate(destination)
+    localStorage.setItem('tab', destination.toString())
   }
 
   const signOutDialog = (
@@ -183,13 +193,17 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
       fullWidth={true}
       maxWidth="xs"
       onClose={() => setTriggerConfirmSignOut(false)}>
-      <DialogTitle>{t("dialog.signout")}</DialogTitle>
+      <DialogTitle>{t("dialog.sign_out")}</DialogTitle>
       <DialogContent>
-        <DialogContentText>{t("dialog.signout_message")}</DialogContentText>
+        <DialogContentText>{t("dialog.sign_out_message")}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button color="primary" onClick={() => setTriggerConfirmSignOut(false)}>{t("button.cancel")}</Button>
-        <Button color="primary" onClick={onTriggerSignOut}>{t("button.continue")}</Button>
+        <Button
+          color="primary"
+          onClick={() => setTriggerConfirmSignOut(false)}>{t("button.cancel")}</Button>
+        <Button
+          color="primary"
+          onClick={onTriggerSignOut}>{t("button.continue")}</Button>
       </DialogActions>
     </Dialog>
   )
@@ -197,13 +211,15 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
   const drawerItems = (
     <NavigationComponent
       onNavigate={onNavigateThenDismiss}
-      currentDestination={props.currentDestination} />
+      currentDestination={props.currentDestination}/>
   )
 
   return (
-    <div className={classes.root}>
+    <Box className={classes.root}>
       <nav className={classes.nav}>
-        <Hidden mdUp implementation="css">
+        <Hidden
+          lgUp
+          implementation="css">
           <Drawer
             variant="temporary"
             anchor={theme.direction === "rtl" ? 'right' : 'left'}
@@ -218,29 +234,54 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
             {drawerItems}
           </Drawer>
         </Hidden>
-        <Hidden smDown>
-          <AppBar color='inherit' elevation={2}>
+        <Hidden lgDown>
+          <AppBar color="inherit" elevation={1}>
             <Toolbar>
-              <Box component={Logo} className={classes.icon} marginRight={3}/>
-              <Divider variant="middle" orientation="vertical" flexItem className={classes.divider}/>
-              <Box flexGrow={1} marginX={1}>
-                <TopNavigationComponent 
+              <Box
+                component={Logo}
+                className={classes.icon}
+                marginRight={3}/>
+              <Divider
+                variant="middle"
+                orientation="vertical"
+                flexItem
+                className={classes.divider}/>
+              <Box
+                flexGrow={1}
+                marginX={1}>
+                <TopNavigationComponent
                   onNavigate={onNavigateThenDismiss}
                   currentDestination={props.currentDestination}/>
               </Box>
-              <Divider variant="middle" orientation="vertical" flexItem className={classes.divider}/>
+              <Divider
+                variant="middle"
+                orientation="vertical"
+                flexItem
+                className={classes.divider}/>
               <Button
+                color="inherit"
                 ref={anchorRef}
                 aria-haspopup="true"
                 onClick={onTriggerMenu}
                 className={classes.profile}
                 endIcon={<ArrowDropDown/>}>
-                <Box flexDirection="column" textAlign="start">
-                  <Typography variant="body2">{user && user.firstName}</Typography>
-                  <Typography variant="caption">{user && user.email}</Typography>
+                <Box
+                  flexDirection="column"
+                  textAlign="start">
+                  <Typography
+                    className={classes.profileName}
+                    variant="body2">{user && user.firstName}</Typography>
+                  <Typography
+                    className={classes.profileEmail}
+                    variant="caption">{user && user.email}</Typography>
                 </Box>
               </Button>
-              <Popper open={menuOpen} anchorEl={anchorRef.current} role={undefined} transition disablePortal>
+              <Popper
+                open={menuOpen}
+                anchorEl={anchorRef.current}
+                role={undefined}
+                transition
+                disablePortal>
                 {({ TransitionProps, placement }) => (
                   <Grow
                     {...TransitionProps}
@@ -250,23 +291,23 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
                     <Paper className={classes.profileMenu}>
                       <ClickAwayListener onClickAway={onMenuDispose}>
                         <MenuList id="navigation-menu">
-                          <MenuItem 
+                          <MenuItem
                             key="profile"
                             onClick={() => onNavigateThenDismiss(Destination.PROFILE)}>
                             <ListItemIcon><AccountCircleOutlined/></ListItemIcon>
                             <ListItemText>{t("navigation.profile")}</ListItemText>
                           </MenuItem>
-                          <MenuItem 
+                          <MenuItem
                             key="settings"
                             onClick={() => onNavigateThenDismiss(Destination.SETTINGS)}>
                             <ListItemIcon><SettingsOutlined/></ListItemIcon>
                             <ListItemText>{t('navigation.settings')}</ListItemText>
                           </MenuItem>
-                          <MenuItem 
-                            key="signout"
+                          <MenuItem
+                            key="signOut"
                             onClick={() => setTriggerConfirmSignOut(true)}>
                             <ListItemIcon><ExitToAppRounded/></ListItemIcon>
-                            <ListItemText>{t('button.signout')}</ListItemText>
+                            <ListItemText>{t('button.sign_out')}</ListItemText>
                           </MenuItem>
                         </MenuList>
                       </ClickAwayListener>
@@ -279,27 +320,32 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
         </Hidden>
       </nav>
       <Box className={classes.content}>
-        <Suspense fallback={<ContentLoadingStateComponent />}>
-          <InnerComponent destination={props.currentDestination} onDrawerToggle={onToggleDrawerState} />
+        <Suspense fallback={<ContentLoadingStateComponent/>}>
+          <InnerComponent
+            destination={props.currentDestination}
+            onDrawerToggle={onToggleDrawerState}/>
         </Suspense>
       </Box>
       {signOutDialog}
-    </div>
+    </Box>
   );
 }
 
 const RootComponent = () => {
   const { status, user } = useAuthState();
-  const [destination, setDestination] = useState<Destination>(Destination.HOME);
   const theme = useTheme();
-  const isXSDeviceWidth = useMediaQuery(theme.breakpoints.down('xs'));
+  const isXSDeviceWidth = useMediaQuery(theme.breakpoints.down('sm'));
+  const [destination, setDestination] = useState<Destination>(() => {
+    const previousDestination = localStorage.getItem('tab');
+    return previousDestination ? parseInt(previousDestination) : Destination.ASSETS;
+  });
 
   const onNavigate = (newDestination: Destination) => {
     setDestination(newDestination)
   }
 
   if (status === AuthStatus.PENDING) {
-    return <MainLoadingStateComponent />
+    return <MainLoadingStateComponent/>
   } else if (status === AuthStatus.FETCHED) {
     if (user !== undefined) {
       return (
@@ -312,10 +358,10 @@ const RootComponent = () => {
           }}>
           <RootContainerComponent
             onNavigate={onNavigate}
-            currentDestination={destination} />
+            currentDestination={destination}/>
         </SnackbarProvider>
       )
-    } else return <Redirect to="/auth" />
-  } else return <Redirect to="/error" />
+    } else return <Redirect to="/auth"/>
+  } else return <Redirect to="/error"/>
 }
 export default withRouter(RootComponent);

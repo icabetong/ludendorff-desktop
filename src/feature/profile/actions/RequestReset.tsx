@@ -1,12 +1,5 @@
 import { useTranslation } from "react-i18next";
-import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle
-} from "@material-ui/core";
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuthState } from "../../auth/AuthProvider";
@@ -42,8 +35,12 @@ const RequestResetPrompt = (props: RequestResetPromptProps) => {
         <DialogContentText>{t("dialog.send_reset_link_message")}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button color="primary" onClick={props.onDismiss}>{t("button.cancel")}</Button>
-        <Button color="primary" onClick={onSubmit}>{t("button.continue")}</Button>
+        <Button
+          color="primary"
+          onClick={props.onDismiss}>{t("button.cancel")}</Button>
+        <Button
+          color="primary"
+          onClick={onSubmit}>{t("button.continue")}</Button>
       </DialogActions>
     </Dialog>
   );

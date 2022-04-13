@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next";
-import Button from "@material-ui/core/Button";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
 
 const QRCode = require('qrcode.react');
 
@@ -25,20 +25,24 @@ const QrCodeViewComponent = (props: QrCodeViewComponentPropsType) => {
       fullWidth={true}
       maxWidth="xs"
       onClose={props.onClose}>
-
-      <DialogTitle>{t("view_qr_code")}</DialogTitle>
-
+      <DialogTitle>{t("dialog.view_qr_code")}</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          <Typography>{t("view_qr_code_summary")}</Typography>
+          <Typography>{t("dialog.view_qr_code_summary")}</Typography>
         </DialogContentText>
-        <Grid container direction="row" alignItems="center" justifyContent="center">
-          <QRCode value={`clsu://ludendorff/${props.assetId}`} />
+        <Grid
+          container
+          direction="row"
+          alignItems="center"
+          justifyContent="center">
+          <QRCode value={`clsu://ludendorff/${props.assetId}`}/>
         </Grid>
       </DialogContent>
 
       <DialogActions>
-        <Button color="primary" onClick={props.onClose}>{t("close")}</Button>
+        <Button
+          color="primary"
+          onClick={props.onClose}>{t("button.close")}</Button>
       </DialogActions>
     </Dialog>
   );

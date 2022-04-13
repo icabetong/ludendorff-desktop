@@ -8,9 +8,8 @@ import {
   LinearProgress,
   useMediaQuery,
   useTheme,
-  makeStyles
-} from "@material-ui/core";
-import { DesktopWindowsRounded } from "@material-ui/icons";
+} from "@mui/material";
+import { DesktopWindowsRounded } from "@mui/icons-material";
 
 import { Asset } from "./Asset";
 import AssetList from "./AssetList";
@@ -18,19 +17,10 @@ import AssetList from "./AssetList";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import EmptyStateComponent from "../state/EmptyStates";
 import { usePermissions } from "../auth/AuthProvider";
+import { PaginationController, PaginationControllerProps } from "../../components/PaginationController";
+import useQueryLimit from "../shared/useQueryLimit";
 
-const useStyles = makeStyles(() => ({
-  root: {
-    minHeight: '60vh',
-    paddingTop: 0,
-    paddingBottom: 0,
-    '& .MuiList-padding': {
-      padding: 0
-    }
-  }
-}))
-
-type AssetPickerProps = {
+type AssetPickerProps = PaginationControllerProps & {
   isOpen: boolean,
   assets: Asset[],
   isLoading: boolean,
@@ -41,9 +31,9 @@ type AssetPickerProps = {
 const AssetPicker = (props: AssetPickerProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
-  const classes = useStyles();
+  const smBreakpoint = useMediaQuery(theme.breakpoints.down('sm'));
   const { canRead } = usePermissions();
+  const { limit } = useQueryLimit('assetQueryLimit');
 
   const onSelect = (asset: Asset) => {
     props.onSelectItem(asset);
@@ -52,29 +42,40 @@ const AssetPicker = (props: AssetPickerProps) => {
 
   return (
     <Dialog
-      fullScreen={isMobile}
+      fullScreen={smBreakpoint}
       fullWidth={true}
       maxWidth="xs"
       open={props.isOpen}
       onClose={props.onDismiss}>
-      <DialogTitle>{t("asset_select")}</DialogTitle>
-      <DialogContent dividers={true} className={classes.root}>
+      <DialogTitle>{t("dialog.select_asset")}</DialogTitle>
+      <DialogContent dividers={true}>
         {canRead ?
           !props.isLoading
             ? props.assets.length > 0
-              ? <AssetList
+              ? <>
+                <AssetList
                   assets={props.assets}
-                  onItemSelect={onSelect} />
+                  onItemSelect={onSelect}/>
+                {props.canForward && props.assets.length > 0 && props.assets.length === limit &&
+                  <PaginationController
+                    canBack={props.canBack}
+                    canForward={props.canForward}
+                    onBackward={props.onBackward}
+                    onForward={props.onForward}/>
+                }
+              </>
               : <EmptyStateComponent
                 icon={DesktopWindowsRounded}
-                title={t("empty_asset")}
-                subtitle={t("empty_asset_summary")} />
-            : <LinearProgress />
-          : <ErrorNoPermissionState />
+                title={t("empty.asset")}
+                subtitle={t("empty.asset_summary")}/>
+            : <LinearProgress/>
+          : <ErrorNoPermissionState/>
         }
       </DialogContent>
       <DialogActions>
-        <Button color="primary" onClick={props.onDismiss}>{t("close")}</Button>
+        <Button
+          color="primary"
+          onClick={props.onDismiss}>{t("button.close")}</Button>
       </DialogActions>
     </Dialog>
   );

@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ComponentClass, useState } from "react";
+import React, { ComponentClass, FunctionComponent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -11,33 +11,31 @@ import {
   Divider,
   Grid,
   List,
-  ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   ListSubheader,
-  Typography,
-  makeStyles,
-  alpha
-} from "@material-ui/core";
+} from "@mui/material";
 import {
-  AssignmentRounded,
+  AccountCircleOutlined,
   DesktopWindowsRounded,
-  HomeRounded,
+  ExitToAppRounded,
+  Inventory2Outlined,
+  LocalAtmOutlined,
   PeopleOutlineRounded,
   SettingsOutlined,
-  AccountCircleOutlined,
-  ExitToAppRounded
-} from "@material-ui/icons";
-import clsx from "clsx";
+  UploadFileOutlined
+} from "@mui/icons-material";
 import { signOut } from "firebase/auth";
 import { AuthStatus, useAuthState, usePermissions } from "../auth/AuthProvider";
 import { auth } from "../../index";
 
 export enum Destination {
-  HOME = 1,
-  ASSETS,
+  ASSETS = 1,
+  INVENTORY,
+  ISSUED,
+  STOCK_CARD,
   USERS,
-  ASSIGNMENTS,
   PROFILE,
   SETTINGS
 }
@@ -66,60 +64,18 @@ type NavigationItemPropsType = {
   isActive: boolean
 }
 
-const useStyles = makeStyles((theme) => ({
-  inset: {
-    marginBottom: '1em'
-  },
-  container: {
-    borderRadius: theme.spacing(1),
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-    [theme.breakpoints.down("xs")]: {
-      paddingLeft: '12px',
-      paddingRight: '12px',
-    },
-    '& .MuiListItemIcon-root': {
-      width: '1.6em',
-      height: '1.6em',
-      color: theme.palette.text.primary
-    },
-    '&$selected': {
-      backgroundColor: theme.palette.type === 'dark' ? alpha(theme.palette.primary.main, 0.3) : alpha(theme.palette.primary.main, 0.2),
-      '& .MuiListItemIcon-root': {
-        color: theme.palette.primary.main
-      },
-      '& .MuiListItemText-root': {
-        '& .MuiTypography-root': {
-          color: theme.palette.primary.main
-        },
-      },
-    },
-    '&:hover': {
-      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-    }
-  },
-  navigation: {
-    paddingLeft: theme.spacing(1),
-    paddingRight: theme.spacing(1)
-  },
-  navigationText: {
-    color: theme.palette.text.primary
-  },
-  selected: {},
-}));
+const destinations: NavigationItemType[] = [
+  { icon: DesktopWindowsRounded, title: "navigation.assets", destination: Destination.ASSETS },
+  { icon: Inventory2Outlined, title: "navigation.inventories", destination: Destination.INVENTORY },
+  { icon: UploadFileOutlined, title: "navigation.issued", destination: Destination.ISSUED },
+  { icon: LocalAtmOutlined, title: "navigation.stock_cards", destination: Destination.STOCK_CARD },
+  { icon: PeopleOutlineRounded, title: "navigation.users", destination: Destination.USERS },
+]
 
 export const NavigationComponent = (props: NavigationComponentPropsType) => {
-  const classes = useStyles();
   const { status, user } = useAuthState();
-  const [triggerConfirmSignOut, setTriggerConfirmSignOut] = useState(false);
+  const [endSession, setEndSession] = useState(false);
   const { t } = useTranslation();
-
-  const destinations: NavigationItemType[] = [
-    { icon: HomeRounded, title: "navigation.home", destination: Destination.HOME },
-    { icon: DesktopWindowsRounded, title: "navigation.assets", destination: Destination.ASSETS },
-    { icon: PeopleOutlineRounded, title: "navigation.users", destination: Destination.USERS },
-    { icon: AssignmentRounded, title: "navigation.assignments", destination: Destination.ASSIGNMENTS },
-  ]
 
   const minorDestinations: NavigationItemType[] = [
     {
@@ -132,50 +88,58 @@ export const NavigationComponent = (props: NavigationComponentPropsType) => {
     { icon: SettingsOutlined, title: "navigation.settings", destination: Destination.SETTINGS },
   ]
 
-  const confirmSignOut = () => {
-    setTriggerConfirmSignOut(true);
-  }
-
-  const triggerSignOut = async () => {
+  const onConfirmEndSession = () => setEndSession(true);
+  const onDismissEndSession = () => setEndSession(false);
+  const onEndSession = async () => {
     await signOut(auth);
-    setTriggerConfirmSignOut(false);
+    setEndSession(false);
   }
 
   return (
     <Box>
-      <Box className="inset" />
-      <ListSubheader>{t("navigation.manage")}</ListSubheader>
-      <List className={classes.navigation}>
+      <List
+        sx={{ bgColor: 'background.paper' }}
+        aria-labelledby="primary-route-subheader"
+        subheader={
+          <ListSubheader component="div" id="primary-route-subheader">{t("navigation.manage")}</ListSubheader>
+        }>
         <NavigationList
           items={destinations}
           destination={props.currentDestination}
-          onNavigate={props.onNavigate} />
+          onNavigate={props.onNavigate}/>
       </List>
-      <Divider />
-      <ListSubheader>{t("navigation.account")}</ListSubheader>
-      <List className={classes.navigation}>
+      <Divider/>
+      <List
+        aria-labelledby="secondary-route-subheader"
+        subheader={
+          <ListSubheader component="div" id="secondary-route-subheader">{t("navigation.account")}</ListSubheader>
+        }>
         <NavigationList
           items={minorDestinations}
           destination={props.currentDestination}
-          onNavigate={props.onNavigate} />
+          onNavigate={props.onNavigate}/>
         <NavigationListItem
           itemKey={1}
-          navigation={{ icon: ExitToAppRounded, title: t("button.signout") }}
+          navigation={{ icon: ExitToAppRounded, title: t("button.sign_out") }}
           isActive={false}
-          action={() => confirmSignOut()} />
+          action={onConfirmEndSession}/>
       </List>
       <Dialog
-        open={triggerConfirmSignOut}
+        open={endSession}
         fullWidth={true}
         maxWidth="xs"
-        onClose={() => setTriggerConfirmSignOut(false)}>
-        <DialogTitle>{t("dialog.signout")}</DialogTitle>
+        onClose={onDismissEndSession}>
+        <DialogTitle>{t("dialog.sign_out")}</DialogTitle>
         <DialogContent>
-          <DialogContentText>{t("dialog.signout_message")}</DialogContentText>
+          <DialogContentText>{t("dialog.sign_out_message")}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button color="primary" onClick={() => setTriggerConfirmSignOut(false)}>{t("button.cancel")}</Button>
-          <Button color="primary" onClick={triggerSignOut}>{t("button.continue")}</Button>
+          <Button
+            color="primary"
+            onClick={onDismissEndSession}>{t("button.cancel")}</Button>
+          <Button
+            color="primary"
+            onClick={onEndSession}>{t("button.continue")}</Button>
         </DialogActions>
       </Dialog>
     </Box>
@@ -184,74 +148,64 @@ export const NavigationComponent = (props: NavigationComponentPropsType) => {
 
 
 const NavigationListItem = (props: NavigationItemPropsType) => {
-  const classes = useStyles();
   const { t } = useTranslation();
 
   return (
-    <ListItem
-      button
-      classes={{ root: classes.container, selected: classes.selected }}
+    <ListItemButton
       key={props.itemKey}
       selected={props.isActive}
       onClick={props.action}>
-      <ListItemIcon>{
-        React.createElement(props.navigation.icon)
-      }
+      <ListItemIcon>{React.createElement(props.navigation.icon)}
       </ListItemIcon>
-      <ListItemText primary={<Typography variant="body2">{t(props.navigation.title)}</Typography>} />
-    </ListItem>
+      <ListItemText primary={t(props.navigation.title)}/>
+    </ListItemButton>
   )
 }
 
 const NavigationList = (props: NavigationListPropsType) => {
-  const { canRead, canManageUsers, isAdmin } = usePermissions();
+  const { canRead, canManageUsers } = usePermissions();
 
   return (
-    <React.Fragment>{
+    <>{
       props.items.map((navigation: NavigationItemType) => {
         if (!canRead && navigation.destination === Destination.ASSETS)
           return <></>;
         if (!canManageUsers && navigation.destination === Destination.USERS)
           return <></>;
-        if (!isAdmin && navigation.destination === Destination.ASSIGNMENTS)
-          return <></>;
 
-        return <NavigationListItem
-          key={navigation.destination}
-          itemKey={navigation.destination}
-          navigation={navigation}
-          action={() => props.onNavigate(navigation.destination!!)}
-          isActive={props.destination === navigation.destination} />
-
+        return (
+          <NavigationListItem
+            key={navigation.destination}
+            itemKey={navigation.destination}
+            navigation={navigation}
+            action={() => props.onNavigate(navigation.destination!!)}
+            isActive={props.destination === navigation.destination}/>
+        )
       })
-    }</React.Fragment>
+    }</>
   );
 }
 
-
-
 export const TopNavigationComponent = (props: NavigationComponentPropsType) => {
-  const destinations: NavigationItemType[] = [
-    { icon: HomeRounded, title: "navigation.home", destination: Destination.HOME },
-    { icon: DesktopWindowsRounded, title: "navigation.assets", destination: Destination.ASSETS },
-    { icon: PeopleOutlineRounded, title: "navigation.users", destination: Destination.USERS },
-    { icon: AssignmentRounded, title: "navigation.assignments", destination: Destination.ASSIGNMENTS },
-  ]
-
-  return <TopNavigationList destination={props.currentDestination} onNavigate={props.onNavigate} items={destinations}/>
+  return (
+    <TopNavigationList
+      destination={props.currentDestination}
+      onNavigate={props.onNavigate}
+      items={destinations}/>
+  )
 }
 
 export const TopNavigationList = (props: NavigationListPropsType) => {
-  const { canRead, canManageUsers, isAdmin } = usePermissions();
+  const { canRead, canManageUsers } = usePermissions();
 
   return (
-    <Grid container direction="row">
-    { props.items.map((nav: NavigationItemType) => {
+    <Grid
+      container
+      direction="row">
+      {props.items.map((nav: NavigationItemType) => {
         if (!canRead && nav.destination === Destination.ASSETS)
-        return <></>;
-        if (!canManageUsers && nav.destination === Destination.USERS)
           return <></>;
-        if (!isAdmin && nav.destination === Destination.ASSIGNMENTS)
+        if (!canManageUsers && nav.destination === Destination.USERS)
           return <></>;
 
         return (
@@ -262,37 +216,28 @@ export const TopNavigationList = (props: NavigationListPropsType) => {
             action={() => props.onNavigate(nav.destination!!)}
             isActive={props.destination === nav.destination}/>
         )
-    })
-    }
+      })
+      }
     </Grid>
   )
 }
 
-const useCustomButtonStyles = makeStyles((theme) => ({
-  item: {
-    margin: '0 0.2em',
-    padding: '0.8em 1.8em',
-    textTransform: 'none',
-  },
-  active: {
-    backgroundColor: alpha(theme.palette.primary.main, 0.2),
-    color: theme.palette.primary.main,
-  }
-}));
-
 export const TopNavigationItem = (props: NavigationItemPropsType) => {
-  const classes = useCustomButtonStyles();
   const { t } = useTranslation();
-
-  const classNames = clsx(classes.item, props.isActive ? classes.active : undefined)
 
   return (
     <Button
-      className={classNames}
+      sx={{
+        margin: '0 0.2em',
+        padding: '0.4em 1em',
+        textTransform: 'none',
+        fontWeight: '600',
+        fontSize: '1em',
+        color: (theme) => props.isActive ? theme.palette.primary.main : theme.palette.text.secondary
+      }}
       key={props.itemKey}
-      startIcon={React.createElement(props.navigation.icon)}
       onClick={props.action}>
-      <Typography variant="body2">{t(props.navigation.title)}</Typography>
+      {t(props.navigation.title)}
     </Button>
   );
 }

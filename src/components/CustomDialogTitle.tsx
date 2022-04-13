@@ -1,50 +1,29 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import {
-  IconButton,
-  Typography,
-  createStyles,
-  Theme,
-  withStyles,
-  WithStyles
-} from "@material-ui/core";
-import MuiDialogTitle from "@material-ui/core/DialogTitle";
-import { SearchOutlined } from "@material-ui/icons";
+import { Stack, IconButton, Typography } from "@mui/material";
+import { SearchOutlined } from "@mui/icons-material";
 
-const styles = (theme: Theme) =>
-  createStyles({
-    root: {
-      margin: 0,
-      padding: theme.spacing(2),
-    },
-    actionButton: {
-      position: 'absolute',
-      right: theme.spacing(1),
-      top: theme.spacing(1),
-      color: theme.palette.grey[500],
-    },
-  });
-
-type CustomDialogTitleProps = WithStyles<typeof styles> & {
+type CustomDialogTitleProps = {
   children: React.ReactNode,
   onSearch: () => void,
 }
-const CustomDialogTitle = withStyles(styles)((props: CustomDialogTitleProps) => {
+const CustomDialogTitle = (props: CustomDialogTitleProps) => {
   const { t } = useTranslation();
-  const { children, classes, onSearch, ...other } = props;
+  const { children, onSearch, ...other } = props;
   return (
-    <MuiDialogTitle disableTypography className={classes.root} {...other}>
-      <Typography variant="h6">{children}</Typography>
+    <Stack direction="row" alignItems="center" justifyContent="center" sx={{ px: 2, py: 1 }} {...other}>
+      <Typography sx={{flex: 2}} variant="h6">{children}</Typography>
       {onSearch ? (
         <IconButton
+          edge="end"
+          size="large"
           aria-label={t("button.search")}
-          className={classes.actionButton}
           onClick={onSearch}>
           <SearchOutlined/>
         </IconButton>
       ) : null}
-    </MuiDialogTitle>
-  )
-})
+    </Stack>
+  );
+}
 
 export default CustomDialogTitle;
