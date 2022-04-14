@@ -40,6 +40,11 @@ import useColumnVisibilityModel from "../shared/useColumnVisibilityModel";
 import useQueryLimit from "../shared/useQueryLimit";
 import { pdf } from "@react-pdf/renderer";
 import StockCardPDF from "./StockCardPDF";
+import { ExcelIcon } from "../../components/CustomIcons";
+import { convertStockCardToWorkSheet } from "./StockCardSheet";
+import * as Excel from "exceljs";
+import { convertWorkbookToBlob } from "../shared/Spreadsheet";
+import BackgroundWorkDialog from "../shared/BackgroundWorkDialog";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -61,6 +66,7 @@ const StockCardScreen = (props: StockCardScreenProps) => {
   const { density, onDensityChanged } = useDensity('stockCardDensity');
   const [stockCard, setStockCard] = useState<StockCard | null>(null);
   const [searchMode, setSearchMode] = useState(false);
+  const [hasBackgroundWork, setBackgroundWork] = useState(false);
   const { limit, onLimitChanged } = useQueryLimit('stockCardQueryLimit');
   const linkRef = useRef<HTMLAnchorElement | null>(null);
 
@@ -108,12 +114,18 @@ const StockCardScreen = (props: StockCardScreenProps) => {
           showInMenu
           icon={<DescriptionOutlined/>}
           label={t("button.generate_report")}
-          onClick={() => onGenerateReport(params.row as StockCard)}/>
+          onClick={() => onGenerateReport(params.row as StockCard)}/>,
+        <GridActionsCellItem
+          showInMenu
+          icon={<ExcelIcon/>}
+          label={t("button.export_spreadsheet")}
+          onClick={() => onExportToSpreadsheet(params.row as StockCard)}/>
       ],
     }
   ]
   const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('stockCardColumns', columns);
   const onGenerateReport = async (stockCard: StockCard) => {
+    setBackgroundWork(true);
     stockCard.entries = await StockCardRepository.fetch(stockCard.stockCardId);
     const blob = await pdf((<StockCardPDF stockCard={stockCard}/>)).toBlob();
 
@@ -122,6 +134,20 @@ const StockCardScreen = (props: StockCardScreenProps) => {
       linkRef.current.download = `${stockCard.description}.pdf`;
       linkRef.current.click();
     }
+    setBackgroundWork(false);
+  }
+  const onExportToSpreadsheet = async (stockCard: StockCard) => {
+    setBackgroundWork(true);
+    const workBook = new Excel.Workbook();
+    convertStockCardToWorkSheet(workBook, stockCard);
+
+    const blob = await convertWorkbookToBlob(workBook)
+    if (linkRef && linkRef.current) {
+      linkRef.current.href = URL.createObjectURL(blob);
+      linkRef.current.download = `${t("document.stock_card")}.xlsx`;
+      linkRef.current.click();
+    }
+    setBackgroundWork(false);
   }
 
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -181,9 +207,10 @@ const StockCardScreen = (props: StockCardScreenProps) => {
               <Box className={classes.wrapper}>
                 {searchMode
                   ? <StockCardDataGrid
-                    onItemSelect={onDataGridRowDoubleClicked}
-                    onGenerateReport={onGenerateReport}
-                    onRemoveInvoke={onRemoveInvoke}/>
+                      onItemSelect={onDataGridRowDoubleClicked}
+                      onGenerateReport={onGenerateReport}
+                      onExportSpreadsheet={onExportToSpreadsheet}
+                      onRemoveInvoke={onRemoveInvoke}/>
                   : dataGrid
                 }
               </Box>
@@ -193,9 +220,9 @@ const StockCardScreen = (props: StockCardScreenProps) => {
                 ? items.length < 1
                   ? <StockCardEmptyState/>
                   : <StockCardList
-                    stockCards={items}
-                    onItemSelect={onStockCardSelected}
-                    onItemRemove={onRemoveInvoke}/>
+                      stockCards={items}
+                      onItemSelect={onStockCardSelected}
+                      onItemRemove={onRemoveInvoke}/>
                 : <LinearProgress/>
               }
               <Fab
@@ -220,6 +247,10 @@ const StockCardScreen = (props: StockCardScreenProps) => {
         summary="dialog.stock_card_remove_summary"
         onConfirm={onStockCardRemove}
         onDismiss={onRemoveDismiss}/>
+      <BackgroundWorkDialog
+        isOpen={hasBackgroundWork}
+        title={t("dialog.generating_spreadsheet")}
+        summary={t("dialog.generating_spreadsheet_summary")}/>
       <Box sx={{ display: 'none' }}>
         <a ref={linkRef} href="https://captive.apple.com">{t("button.download")}</a>
       </Box>
@@ -230,6 +261,7 @@ const StockCardScreen = (props: StockCardScreenProps) => {
 type StockCardDataGridProps = HitsProvided<StockCard> & {
   onItemSelect: (params: GridRowParams) => void,
   onGenerateReport: (stockCard: StockCard) => void,
+  onExportSpreadsheet: (stockCard: StockCard) => void,
   onRemoveInvoke: (stockCard: StockCard) => void,
 }
 const StockCardDataGridCore = (props: StockCardDataGridProps) => {
@@ -239,14 +271,14 @@ const StockCardDataGridCore = (props: StockCardDataGridProps) => {
   const columns = [
     { field: entityName, headerName: t("field.entity_name"), flex: 1 },
     { field: assetStockNumber, headerName: t("field.stock_number"), flex: 1 },
-    { field: assetDescription, headerName: t("field.asset_description"), flex: 1 },
+    { field: assetDescription, headerName: t("field.asset_description"), flex: 2 },
     {
       field: unitPrice,
       headerName: t("field.unit_price"),
       flex: 0.5,
       valueGetter: (params: GridValueGetterParams) => currencyFormatter.format(params.value)
     },
-    { field: assetUnitOfMeasure, headerName: t("field.unit_of_measure"), flex: 1 },
+    { field: assetUnitOfMeasure, headerName: t("field.unit_of_measure"), flex: 0.5 },
     {
       field: "actions",
       type: "actions",
@@ -260,7 +292,12 @@ const StockCardDataGridCore = (props: StockCardDataGridProps) => {
           showInMenu
           icon={<DescriptionOutlined/>}
           label={t("button.generate_report")}
-          onClick={() => props.onGenerateReport(params.row as StockCard)}/>
+          onClick={() => props.onGenerateReport(params.row as StockCard)}/>,
+        <GridActionsCellItem
+          showInMenu
+          icon={<ExcelIcon/>}
+          label={t("button.export_spreadsheet")}
+          onClick={() => props.onExportSpreadsheet(params.row as StockCard)}/>
       ],
     }
   ];

@@ -42,6 +42,7 @@ import { ContentLoadingStateComponent, MainLoadingStateComponent } from "../stat
 import { auth } from "../../index";
 import IssuedReportScreen from "../issue/IssuedReportScreen";
 import StockCardScreen from "../stockcard/StockCardScreen";
+import FinishAccountDialog from "../auth/FinishAccountDialog";
 
 
 const AssetScreen = lazy(() => import('../asset/AssetScreen'));
@@ -235,7 +236,7 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
           </Drawer>
         </Hidden>
         <Hidden lgDown>
-          <AppBar color="inherit" elevation={1}>
+          <AppBar color="inherit" elevation={0}>
             <Toolbar>
               <Box
                 component={Logo}
@@ -319,6 +320,7 @@ const RootContainerComponent = (props: RootContainerComponentPropsType) => {
           </AppBar>
         </Hidden>
       </nav>
+      <Divider/>
       <Box className={classes.content}>
         <Suspense fallback={<ContentLoadingStateComponent/>}>
           <InnerComponent
@@ -356,9 +358,12 @@ const RootComponent = () => {
             vertical: 'bottom',
             horizontal: isXSDeviceWidth ? 'center' : 'right'
           }}>
-          <RootContainerComponent
-            onNavigate={onNavigate}
-            currentDestination={destination}/>
+          <>
+            <RootContainerComponent
+              onNavigate={onNavigate}
+              currentDestination={destination}/>
+            <FinishAccountDialog isOpen={!user.setupCompleted}/>
+          </>
         </SnackbarProvider>
       )
     } else return <Redirect to="/auth"/>
