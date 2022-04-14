@@ -5,7 +5,7 @@ import { getDataGridTheme } from "../core/Core";
 import { connectHits, InstantSearch } from "react-instantsearch-dom";
 import { Provider } from "../../components/Search";
 import { useTranslation } from "react-i18next";
-import { AddRounded, DeleteOutlineRounded, DescriptionOutlined, Inventory2Outlined } from "@mui/icons-material";
+import { AddRounded, DeleteOutlineRounded, Inventory2Outlined } from "@mui/icons-material";
 
 import { ActionType, initialState, reducer, } from "./InventoryReportEditorReducer";
 import { DataGrid, GridActionsCellItem, GridRowParams, GridValueGetterParams } from "@mui/x-data-grid";
@@ -40,8 +40,10 @@ import AdaptiveHeader from "../../components/AdaptiveHeader";
 import useDensity from "../shared/useDensity";
 import useColumnVisibilityModel from "../shared/useColumnVisibilityModel";
 import useQueryLimit from "../shared/useQueryLimit";
-import InventoryReportPDF from "./InventoryReportPDF";
-import { pdf } from "@react-pdf/renderer";
+import { ExcelIcon } from "../../components/CustomIcons";
+import * as Excel from "exceljs";
+import { convertInventoryReportToSpreadsheet} from "./InventoryReportSheet";
+import { convertWorkbookToBlob } from "../shared/Spreadsheet";
 
 const useStyles = makeStyles((theme: Theme) => ({
   wrapper: {
@@ -107,20 +109,23 @@ const InventoryReportScreen = (props: InventoryReportScreenProps) => {
           label={t("button.delete")}
           onClick={() => onRemoveInvoke(params.row as InventoryReport)}/>,
         <GridActionsCellItem
-          icon={<DescriptionOutlined/>}
-          label={t("button.generate_report")}
-          onClick={() => onGenerateReport(params.row as InventoryReport)}/>
+          showInMenu
+          icon={<ExcelIcon/>}
+          label={t("button.export_spreadsheet")}
+          onClick={() => onExportSpreadsheet(params.row as InventoryReport)}/>
       ],
     }
   ]
   const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('inventoryColumns', columns);
-  const onGenerateReport = async (inventoryReport: InventoryReport) => {
+  const onExportSpreadsheet = async (inventoryReport: InventoryReport) => {
     inventoryReport.items = await InventoryReportRepository.fetch(inventoryReport.inventoryReportId);
-    const blob = await pdf((<InventoryReportPDF inventoryReport={inventoryReport}/>)).toBlob();
+    const workBook = new Excel.Workbook();
+    convertInventoryReportToSpreadsheet(workBook, inventoryReport);
 
+    const blob = await convertWorkbookToBlob(workBook);
     if (linkRef && linkRef.current) {
       linkRef.current.href = URL.createObjectURL(blob);
-      linkRef.current.download = `${inventoryReport.fundCluster}.pdf`;
+      linkRef.current.download = `${t("document.inventory")}.xlsx`;
       linkRef.current?.click();
     }
   }
@@ -186,9 +191,9 @@ const InventoryReportScreen = (props: InventoryReportScreenProps) => {
               <Box className={classes.wrapper}>
                 {searchMode
                   ? <InventoryReportDataGrid
-                    onItemSelect={onDataGridRowDoubleClicked}
-                    onGenerateReport={onGenerateReport}
-                    onRemoveInvoke={onRemoveInvoke}/>
+                      onItemSelect={onDataGridRowDoubleClicked}
+                      onExportSpreadsheet={onExportSpreadsheet}
+                      onRemoveInvoke={onRemoveInvoke}/>
                   : dataGrid
                 }
               </Box>
@@ -198,9 +203,9 @@ const InventoryReportScreen = (props: InventoryReportScreenProps) => {
                 ? items.length < 1
                   ? <InventoryReportEmptyState/>
                   : <InventoryReportList
-                    reports={items}
-                    onItemSelect={onInventoryReportSelected}
-                    onItemRemove={onRemoveInvoke}/>
+                      reports={items}
+                      onItemSelect={onInventoryReportSelected}
+                      onItemRemove={onRemoveInvoke}/>
                 : <LinearProgress/>
               }
               <Fab
@@ -253,7 +258,7 @@ const InventoryReportEmptyState = () => {
 
 type InventoryReportDataGridProps = HitsProvided<InventoryReport> & {
   onItemSelect: (params: GridRowParams) => void,
-  onGenerateReport: (report: InventoryReport) => void,
+  onExportSpreadsheet: (report: InventoryReport) => void,
   onRemoveInvoke: (report: InventoryReport) => void,
 }
 const InventoryReportDataGridCore = (props: InventoryReportDataGridProps) => {
@@ -284,9 +289,9 @@ const InventoryReportDataGridCore = (props: InventoryReportDataGridProps) => {
           label={t("button.delete")}
           onClick={() => props.onRemoveInvoke(params.row as InventoryReport)}/>,
         <GridActionsCellItem
-          icon={<DescriptionOutlined/>}
-          label={t("button.generate_report")}
-          onClick={() => props.onGenerateReport(params.row as InventoryReport)}/>
+          icon={<ExcelIcon/>}
+          label={t("button.export_spreadsheet")}
+          onClick={() => props.onExportSpreadsheet(params.row as InventoryReport)}/>
       ],
     }
   ]
