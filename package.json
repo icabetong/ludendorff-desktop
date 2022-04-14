@@ -75,7 +75,7 @@
   },
   "main": "main.js",
   "scripts": {
-    "start": "craco start",
+    "start": "react-scripts start",
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
@@ -157,7 +157,7 @@
     "electron-icon-builder": "^2.0.1",
     "electron-packager": "^15.4.0",
     "file-loader": "^6.2.0",
-    "wait-on": "^6.0.0",
-    "process": "^0.11.10"
+    "process": "^0.11.10",
+    "wait-on": "^6.0.0"
   }
 }
