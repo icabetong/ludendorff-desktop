@@ -18,6 +18,9 @@ const createWindow = () => {
   const appUrl = process.env.ELECTRON_START_URL || url.format({ pathname: path.join(__dirname, '../build/index.html'), protocol: 'file:', slashes: true });
   window.loadURL(appUrl);
   window.webContents.openDevTools();
+  window.once('ready-to-show', () => {
+    window.show();
+  });
 
   window.on('closed', () => { window = null });
 }

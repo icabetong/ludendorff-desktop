@@ -2,7 +2,6 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const url = require('url');
 
-
 const createWindow = () => {
   const width = 1024, height = 800;
   let window = new BrowserWindow({
@@ -19,6 +18,9 @@ const createWindow = () => {
   window.loadURL(appUrl);
 
   window.on('closed', () => { window = null });
+  window.once('ready-to-show', () => {
+    window.show();
+  });
 }
 
 app.whenReady().then(() => {
