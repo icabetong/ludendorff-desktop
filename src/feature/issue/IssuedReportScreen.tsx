@@ -7,35 +7,30 @@ import { usePermissions } from "../auth/AuthProvider";
 import { useReducer, useRef, useState } from "react";
 import { IssuedReport, IssuedReportRepository } from "./IssuedReport";
 import { usePagination } from "use-pagination-firestore";
-import { date, entityName, fundCluster, issuedCollection, serialNumber } from "../../shared/const";
+import { fundCluster, issuedCollection } from "../../shared/const";
 import { collection, orderBy, query } from "firebase/firestore";
 import { firestore } from "../../index";
-import { formatDate, isDev } from "../../shared/utils";
-import { DataGrid, GridActionsCellItem, GridRowParams, GridValueGetterParams } from "@mui/x-data-grid";
-import { AddRounded, DeleteOutlineRounded, UploadFileOutlined } from "@mui/icons-material";
+import { isDev } from "../../shared/utils";
+import { GridRowParams } from "@mui/x-data-grid";
+import { AddRounded } from "@mui/icons-material";
 import { ActionType, initialState, reducer } from "./IssuedReportEditorReducer";
-import { DataGridPaginationController } from "../../components/PaginationController";
-import GridLinearProgress from "../../components/GridLinearProgress";
-import GridToolbar from "../../components/GridToolbar";
-import { connectHits, InstantSearch } from "react-instantsearch-dom";
+import { InstantSearch } from "react-instantsearch-dom";
 import { Provider } from "../../components/Search";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
-import EmptyStateComponent from "../state/EmptyStates";
-import { HitsProvided } from "react-instantsearch-core";
 import IssuedReportList from "./IssuedReportList";
 import IssuedReportEditor from "./IssuedReportEditor";
 import ConfirmationDialog from "../shared/ConfirmationDialog";
-import { ScreenProps } from "../shared/ScreenProps";
-import GridEmptyRow from "../../components/GridEmptyRows";
+import { ScreenProps } from "../shared/types/ScreenProps";
 import AdaptiveHeader from "../../components/AdaptiveHeader";
-import useDensity from "../shared/useDensity";
-import useColumnVisibilityModel from "../shared/useColumnVisibilityModel";
-import useQueryLimit from "../shared/useQueryLimit";
-import { ExcelIcon } from "../../components/CustomIcons";
+import useQueryLimit from "../shared/hooks/useQueryLimit";
 import * as Excel from "exceljs";
 import { convertIssuedReportToSpreadsheet } from "./IssuedReportSheet";
-import { convertWorkbookToBlob } from "../shared/Spreadsheet";
-import BackgroundWorkDialog from "../shared/BackgroundWorkDialog";
+import { convertWorkbookToBlob, spreadsheetFileExtension } from "../../shared/spreadsheet";
+import { ExportParameters, ExportSpreadsheetDialog } from "../shared/ExportSpreadsheetDialog";
+import IssuedReportDataGrid from "./IssuedReportDataGrid";
+import { IssuedReportEmptyState } from "./IssuedReportEmptyState";
+import useSort from "../shared/hooks/useSort";
+import { OrderByDirection } from "@firebase/firestore-types";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -54,17 +49,32 @@ const IssuedReportScreen = (props: IssuedReportScreenProps) => {
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const { canRead, canWrite } = usePermissions();
-  const { density, onDensityChanged } = useDensity('issuedDensity');
   const [report, setReport] = useState<IssuedReport | undefined>(undefined);
   const { limit, onLimitChanged } = useQueryLimit('issuedQueryLimit');
+  const [toExport, setToExport] = useState<IssuedReport | undefined>(undefined);
   const [searchMode, setSearchMode] = useState(false);
   const [hasBackgroundWork, setBackgroundWork] = useState(false);
   const linkRef = useRef<HTMLAnchorElement | null>(null);
+  const { sortMethod, onSortMethodChange } = useSort('issuedSort');
+
+  const onParseQuery = () => {
+    let field = fundCluster;
+    let direction: OrderByDirection = "asc";
+    if (sortMethod.length > 0) {
+      field = sortMethod[0].field;
+      switch(sortMethod[0].sort) {
+        case "asc":
+        case "desc":
+          direction = sortMethod[0].sort;
+          break;
+      }
+    }
+
+    return query(collection(firestore, issuedCollection), orderBy(field, direction));
+  }
 
   const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<IssuedReport>(
-    query(collection(firestore, issuedCollection), orderBy(fundCluster, "asc")), {
-      limit: limit
-    }
+    onParseQuery(), { limit: limit }
   );
 
   const onRemoveInvoke = (report: IssuedReport) => setReport(report);
@@ -81,50 +91,26 @@ const IssuedReportScreen = (props: IssuedReportScreenProps) => {
     }
   }
 
-  const columns = [
-    { field: fundCluster, headerName: t("field.fund_cluster"), flex: 1 },
-    { field: entityName, headerName: t("field.entity_name"), flex: 1 },
-    { field: serialNumber, headerName: t("field.serial_number"), flex: 1 },
-    {
-      field: date,
-      headerName: t("field.date"),
-      flex: 1,
-      valueGetter: (params: GridValueGetterParams) => {
-        const formatted = formatDate(params.row.accountabilityDate);
-        return t(formatted)
-      }
-    },
-    {
-      field: "actions",
-      type: "actions",
-      flex: 0.5,
-      getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          icon={<DeleteOutlineRounded/>}
-          label={t("button.delete")}
-          onClick={() => onRemoveInvoke(params.row as IssuedReport)}/>,
-        <GridActionsCellItem
-          showInMenu
-          icon={<ExcelIcon/>}
-          label={t("button.export_spreadsheet")}
-          onClick={() => onExportSpreadsheet(params.row as IssuedReport)}/>
-      ],
-    }
-  ];
-  const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('issuedColumns', columns);
   const onExportSpreadsheet = async (issuedReport: IssuedReport) => {
-    setBackgroundWork(true);
-    issuedReport.items = await IssuedReportRepository.fetch(issuedReport.issuedReportId);
-    const workBook = new Excel.Workbook();
-    convertIssuedReportToSpreadsheet(workBook, issuedReport);
+    setToExport(issuedReport);
+  }
+  const onExportDismiss = () => setToExport(undefined);
+  const onExport = async (params: ExportParameters) => {
+    if (toExport) {
+      setBackgroundWork(true);
+      toExport.items = await IssuedReportRepository.fetch(toExport.issuedReportId);
+      const workBook = new Excel.Workbook();
+      convertIssuedReportToSpreadsheet(workBook, params.worksheetName, toExport);
 
-    const blob = await convertWorkbookToBlob(workBook);
-    if (linkRef && linkRef.current) {
-      linkRef.current.href = URL.createObjectURL(blob);
-      linkRef.current.download = `${t("document.issued")}.xlsx`;
-      linkRef.current?.click();
+      const blob = await convertWorkbookToBlob(workBook);
+      if (linkRef && linkRef.current) {
+        linkRef.current.href = URL.createObjectURL(blob);
+        linkRef.current.download = `${params.fileName}${spreadsheetFileExtension}`;
+        linkRef.current?.click();
+      }
+      setBackgroundWork(false);
     }
-    setBackgroundWork(false);
+    onExportDismiss();
   }
 
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -140,37 +126,6 @@ const IssuedReportScreen = (props: IssuedReportScreenProps) => {
     })
   }
 
-  const dataGrid = (
-    <DataGrid
-      components={{
-        LoadingOverlay: GridLinearProgress,
-        NoRowsOverlay: IssuedReportDataGridEmptyRows,
-        Toolbar: GridToolbar,
-        Pagination: isEnd && items.length > 0 && items.length === limit ? DataGridPaginationController : null,
-      }}
-      componentsProps={{
-        pagination: {
-          size: limit,
-          canBack: isStart,
-          canForward: isEnd,
-          onBackward: getPrev,
-          onForward: getNext,
-          onPageSizeChanged: onLimitChanged
-        }
-      }}
-      rows={items}
-      columns={columns}
-      density={density}
-      columnVisibilityModel={visibleColumns}
-      loading={isLoading}
-      getRowId={(r) => r.issuedReportId}
-      onRowDoubleClick={onDataGridRowDoubleClicked}
-      onStateChange={(v) => onDensityChanged(v.density.value)}
-      onColumnVisibilityModelChange={(newModel) =>
-        onVisibilityChange(newModel)
-      }/>
-  )
-
   return (
     <Box sx={{ width: '100%' }}>
       <InstantSearch searchClient={Provider} indexName="issued">
@@ -183,22 +138,30 @@ const IssuedReportScreen = (props: IssuedReportScreenProps) => {
         {canRead
           ? <>
             <Box className={classes.wrapper} sx={{ display: { xs: 'none', sm: 'block' }}}>
-              {searchMode
-                ? <IssuedReportDataGrid
-                    onItemSelect={onDataGridRowDoubleClicked}
-                    onExportSpreadsheet={onExportSpreadsheet}
-                    onRemoveInvoke={onRemoveInvoke}/>
-                : dataGrid
-              }
+              <IssuedReportDataGrid
+                items={items}
+                size={limit}
+                canBack={isStart}
+                canForward={isEnd}
+                isLoading={isLoading}
+                isSearching={searchMode}
+                sortMethod={sortMethod}
+                onBackward={getPrev}
+                onForward={getNext}
+                onPageSizeChanged={onLimitChanged}
+                onItemSelect={onDataGridRowDoubleClicked}
+                onExportSpreadsheet={onExportSpreadsheet}
+                onRemoveInvoke={onRemoveInvoke}
+                onSortMethodChanged={onSortMethodChange}/>
             </Box>
             <Box sx={{ display: { xs: 'block', sm: 'none' }}}>
               {!isLoading
                 ? items.length < 1
                   ? <IssuedReportEmptyState/>
                   : <IssuedReportList
-                    reports={items}
-                    onItemSelect={onIssuedReportSelected}
-                    onItemRemove={onRemoveInvoke}/>
+                      reports={items}
+                      onItemSelect={onIssuedReportSelected}
+                      onItemRemove={onRemoveInvoke}/>
                 : <LinearProgress/>
               }
               <Fab
@@ -223,10 +186,26 @@ const IssuedReportScreen = (props: IssuedReportScreenProps) => {
         summary="dialog.issued_report_remove_summary"
         onConfirm={onReportRemove}
         onDismiss={onRemoveDismiss}/>
-      <BackgroundWorkDialog
-         isOpen={hasBackgroundWork}
-         title={t("dialog.generating_spreadsheet")}
-         summary={t("dialog.generating_spreadsheet_summary")}/>
+      <ExportSpreadsheetDialog
+        key="issuedExport"
+        isOpen={Boolean(toExport)}
+        isWorking={hasBackgroundWork}
+        fileName={toExport?.serialNumber}
+        worksheetName={toExport?.fundCluster}
+        fileNameOptions={toExport &&
+          [...(toExport!.fundCluster ? [toExport!.fundCluster] : []),
+            ...(toExport!.entityName ? [toExport!.entityName] : []),
+            ...(toExport!.serialNumber ? [toExport!.serialNumber] : [])
+          ]
+        }
+        worksheetOptions={toExport &&
+          [...(toExport!.fundCluster ? [toExport!.fundCluster] : []),
+            ...(toExport!.entityName ? [toExport!.entityName] : []),
+            ...(toExport!.serialNumber ? [toExport!.serialNumber] : [])
+          ]
+        }
+        onDismiss={onExportDismiss}
+        onSubmit={onExport}/>
       <Box sx={{display: 'none'}}>
         <a ref={linkRef} href="https://capstive.apple.com">{t("button.download")}</a>
       </Box>
@@ -234,84 +213,4 @@ const IssuedReportScreen = (props: IssuedReportScreenProps) => {
   )
 }
 
-const IssuedReportDataGridEmptyRows = () => {
-  return (
-    <GridEmptyRow>
-      <IssuedReportEmptyState/>
-    </GridEmptyRow>
-  )
-}
-
-const IssuedReportEmptyState = () => {
-  const { t } = useTranslation();
-
-  return (
-    <EmptyStateComponent
-      icon={UploadFileOutlined}
-      title={t("empty.issued_reports_header")}
-      subtitle={t("empty.issued_reports_summary")}/>
-  )
-}
-
-type IssuedReportDataGridCoreProps = HitsProvided<IssuedReport> & {
-  onItemSelect: (params: GridRowParams) => void,
-  onExportSpreadsheet: (report: IssuedReport) => void,
-  onRemoveInvoke: (report: IssuedReport) => void,
-}
-
-const IssuedReportDataGridCore = (props: IssuedReportDataGridCoreProps) => {
-  const { t } = useTranslation();
-  const { density, onDensityChanged } = useDensity('issuedDensity');
-
-  const columns = [
-    { field: fundCluster, headerName: t("field.fund_cluster"), flex: 1 },
-    { field: entityName, headerName: t("field.entity_name"), flex: 1 },
-    { field: serialNumber, headerName: t("field.serial_number"), flex: 1 },
-    {
-      field: date,
-      headerName: t("field.date"),
-      flex: 1,
-      valueGetter: (params: GridValueGetterParams) => {
-        const formatted = formatDate(params.row.accountabilityDate);
-        return t(formatted)
-      }
-    },
-    {
-      field: "actions",
-      type: "actions",
-      flex: 0.5,
-      getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          icon={<DeleteOutlineRounded/>}
-          label={t("button.delete")}
-          onClick={() => props.onRemoveInvoke(params.row as IssuedReport)}/>,
-        <GridActionsCellItem
-          showInMenu
-          icon={<ExcelIcon/>}
-          label={t("button.export_spreadsheet")}
-          onClick={() => props.onExportSpreadsheet(params.row as IssuedReport)}/>
-      ],
-    }
-  ];
-  const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('issuedColumns', columns);
-
-  return (
-    <DataGrid
-      hideFooterPagination
-      components={{
-        LoadingOverlay: GridLinearProgress,
-        NoRowsOverlay: IssuedReportDataGridEmptyRows,
-        Toolbar: GridToolbar,
-      }}
-      rows={props.hits}
-      columns={columns}
-      density={density}
-      columnVisibilityModel={visibleColumns}
-      getRowId={(r) => r.issuedReportId}
-      onRowDoubleClick={props.onItemSelect}
-      onStateChange={(v) => onDensityChanged(v.density.value)}
-      onColumnVisibilityModelChange={(m) => onVisibilityChange(m)}/>
-  )
-}
-const IssuedReportDataGrid = connectHits<IssuedReportDataGridCoreProps, IssuedReport>(IssuedReportDataGridCore)
 export default IssuedReportScreen;

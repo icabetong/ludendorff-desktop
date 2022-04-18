@@ -1,5 +1,12 @@
 import { InventoryReportItem } from "./InventoryReport";
-import { DataGrid, GridRowParams, GridSelectionModel, GridValueGetterParams, GridActionsCellItem } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridRowParams,
+  GridSelectionModel,
+  GridValueGetterParams,
+  GridActionsCellItem,
+  GridLoadingOverlay
+} from "@mui/x-data-grid";
 import {
   article,
   assetDescription,
@@ -17,8 +24,8 @@ import { getEditorDataGridTheme } from "../core/Core";
 import { EditorDataGridProps, EditorGridToolbar } from "../../components/EditorComponent";
 import { useState } from "react";
 import { Asset } from "../asset/Asset";
-import useDensity from "../shared/useDensity";
-import useColumnVisibilityModel from "../shared/useColumnVisibilityModel";
+import useDensity from "../shared/hooks/useDensity";
+import useColumnVisibilityModel from "../shared/hooks/useColumnVisibilityModel";
 import { currencyFormatter } from "../../shared/utils";
 import { EditRounded } from "@mui/icons-material";
 
@@ -97,14 +104,16 @@ const InventoryReportItemDataGrid = (props: InventoryReportItemDataGridProps) =>
       <DataGrid
         checkboxSelection
         components={{
+          LoadingOverlay: GridLoadingOverlay,
           Toolbar: EditorGridToolbar
         }}
         componentsProps={{
           toolbar: {
             onAddAction: props.onAddAction,
-            onRemoveAction: hasChecked ? props.onRemoveAction() : undefined,
+            onRemoveAction: hasChecked ? props.onRemoveAction : undefined,
           }
         }}
+        loading={props.isLoading}
         columns={columns}
         rows={props.items}
         density={density}

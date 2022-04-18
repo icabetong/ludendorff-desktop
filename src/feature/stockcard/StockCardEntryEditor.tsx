@@ -38,7 +38,7 @@ export const StockCardEntryEditor = (props: StockCardEntryEditorProps) => {
   useEffect(() => {
     if (props.isOpen) {
       reset({
-        reference: props.entry?.reference,
+        reference: props.entry?.reference ? props.entry?.reference : "",
         receiptQuantity: props.entry ? props.entry?.receiptQuantity : 0,
         requestedQuantity: props.entry?.requestedQuantity ? props.entry?.requestedQuantity : 0,
         issueQuantity: props.entry?.issueQuantity ? props.entry?.issueQuantity : 0,
@@ -61,7 +61,7 @@ export const StockCardEntryEditor = (props: StockCardEntryEditorProps) => {
     let entry: StockCardEntry = {
       ...data,
       stockCardEntryId: props.entry ? props.entry.stockCardEntryId : newId(),
-      date: Timestamp.fromDate(date),
+      date: props.entry?.date ? props.entry?.date : Timestamp.fromDate(date),
       receiptQuantity: parseInt(`${data.receiptQuantity}`),
       requestedQuantity: parseInt(`${data.requestedQuantity}`),
       issueQuantity: parseInt(`${data.issueQuantity}`),

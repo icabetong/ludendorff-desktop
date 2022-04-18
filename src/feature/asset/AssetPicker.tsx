@@ -18,7 +18,7 @@ import { ErrorNoPermissionState } from "../state/ErrorStates";
 import EmptyStateComponent from "../state/EmptyStates";
 import { usePermissions } from "../auth/AuthProvider";
 import { PaginationController, PaginationControllerProps } from "../../components/PaginationController";
-import useQueryLimit from "../shared/useQueryLimit";
+import useQueryLimit from "../shared/hooks/useQueryLimit";
 
 type AssetPickerProps = PaginationControllerProps & {
   isOpen: boolean,
@@ -48,7 +48,13 @@ const AssetPicker = (props: AssetPickerProps) => {
       open={props.isOpen}
       onClose={props.onDismiss}>
       <DialogTitle>{t("dialog.select_asset")}</DialogTitle>
-      <DialogContent dividers={true}>
+      <DialogContent
+        dividers={true}
+        sx={{
+          minHeight: '60vh',
+          paddingX: 0,
+          '& .MuiList-padding': { padding: 0 }
+        }}>
         {canRead ?
           !props.isLoading
             ? props.assets.length > 0

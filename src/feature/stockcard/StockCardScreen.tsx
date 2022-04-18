@@ -2,15 +2,11 @@ import makeStyles from "@mui/styles/makeStyles";
 import { Box, Fab, LinearProgress, Theme } from "@mui/material";
 import { getDataGridTheme } from "../core/Core";
 import { useTranslation } from "react-i18next";
-import EmptyStateComponent from "../state/EmptyStates";
-import { AddRounded, DeleteOutlineRounded, LocalAtmOutlined } from "@mui/icons-material";
-import { connectHits, InstantSearch } from "react-instantsearch-dom";
+import { AddRounded } from "@mui/icons-material";
+import { InstantSearch } from "react-instantsearch-dom";
 import { StockCard, StockCardRepository } from "./StockCard";
-import { DataGrid, GridActionsCellItem, GridRowParams, GridValueGetterParams } from "@mui/x-data-grid";
-import { ScreenProps } from "../shared/ScreenProps";
-import GridLinearProgress from "../../components/GridLinearProgress";
-import GridToolbar from "../../components/GridToolbar";
-import GridEmptyRow from "../../components/GridEmptyRows";
+import { GridRowParams } from "@mui/x-data-grid";
+import { ScreenProps } from "../shared/types/ScreenProps";
 import { useSnackbar } from "notistack";
 import { usePermissions } from "../auth/AuthProvider";
 import React, { useReducer, useRef, useState } from "react";
@@ -18,31 +14,26 @@ import { usePagination } from "use-pagination-firestore";
 import { collection, orderBy, query } from "firebase/firestore";
 import { firestore } from "../../index";
 import {
-  assetDescription,
-  assetStockNumber,
-  assetUnitOfMeasure,
   entityName,
-  stockCardCollection,
-  unitPrice
+  stockCardCollection
 } from "../../shared/const";
 import { ActionType, initialState, reducer } from "./StockCardEditorReducer";
-import { DataGridPaginationController } from "../../components/PaginationController";
-import { currencyFormatter, isDev } from "../../shared/utils";
+import { isDev } from "../../shared/utils";
 import { Provider } from "../../components/Search";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import StockCardList from "./StockCardList";
-import { HitsProvided } from "react-instantsearch-core";
 import { StockCardEditor } from "./StockCardEditor";
 import ConfirmationDialog from "../shared/ConfirmationDialog";
 import AdaptiveHeader from "../../components/AdaptiveHeader";
-import useDensity from "../shared/useDensity";
-import useColumnVisibilityModel from "../shared/useColumnVisibilityModel";
-import useQueryLimit from "../shared/useQueryLimit";
-import { ExcelIcon } from "../../components/CustomIcons";
+import useQueryLimit from "../shared/hooks/useQueryLimit";
 import { convertStockCardToWorkSheet } from "./StockCardSheet";
 import * as Excel from "exceljs";
-import { convertWorkbookToBlob } from "../shared/Spreadsheet";
-import BackgroundWorkDialog from "../shared/BackgroundWorkDialog";
+import { convertWorkbookToBlob, spreadsheetFileExtension } from "../../shared/spreadsheet";
+import { ExportParameters, ExportSpreadsheetDialog } from "../shared/ExportSpreadsheetDialog";
+import StockCardDataGrid from "./StockCardDataGrid";
+import { StockCardEmptyState } from "./StockCardEmptyState";
+import { OrderByDirection } from "@firebase/firestore-types";
+import useSort from "../shared/hooks/useSort";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -61,17 +52,32 @@ const StockCardScreen = (props: StockCardScreenProps) => {
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const { canRead, canWrite } = usePermissions();
-  const { density, onDensityChanged } = useDensity('stockCardDensity');
   const [stockCard, setStockCard] = useState<StockCard | null>(null);
   const [searchMode, setSearchMode] = useState(false);
   const [hasBackgroundWork, setBackgroundWork] = useState(false);
+  const [toExport, setToExport] = useState<StockCard | undefined>(undefined);
   const { limit, onLimitChanged } = useQueryLimit('stockCardQueryLimit');
   const linkRef = useRef<HTMLAnchorElement | null>(null);
+  const { sortMethod, onSortMethodChange } = useSort('issuedSort');
+
+  const onParseQuery = () => {
+    let field = entityName;
+    let direction: OrderByDirection = "asc";
+    if (sortMethod.length > 0) {
+      field = sortMethod[0].field;
+      switch(sortMethod[0].sort) {
+        case "asc":
+        case "desc":
+          direction = sortMethod[0].sort;
+          break;
+      }
+    }
+
+    return query(collection(firestore, stockCardCollection), orderBy(field, direction));
+  }
 
   const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<StockCard>(
-    query(collection(firestore, stockCardCollection), orderBy(entityName, "asc")), {
-      limit: limit
-    }
+    onParseQuery(), { limit: limit }
   )
 
   const onRemoveInvoke = (stockCard: StockCard) => setStockCard(stockCard);
@@ -88,47 +94,25 @@ const StockCardScreen = (props: StockCardScreenProps) => {
     }
   }
 
-  const columns = [
-    { field: entityName, headerName: t("field.entity_name"), flex: 1 },
-    { field: assetStockNumber, headerName: t("field.stock_number"), flex: 1 },
-    { field: assetDescription, headerName: t("field.asset_description"), flex: 2 },
-    {
-      field: unitPrice,
-      headerName: t("field.unit_price"),
-      flex: 0.5,
-      valueGetter: (params: GridValueGetterParams) => currencyFormatter.format(params.value)
-    },
-    { field: assetUnitOfMeasure, headerName: t("field.unit_of_measure"), flex: 0.5 },
-    {
-      field: "actions",
-      type: "actions",
-      flex: 0.5,
-      getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          icon={<DeleteOutlineRounded/>}
-          label={t("button.delete")}
-          onClick={() => onRemoveInvoke(params.row as StockCard)}/>,
-        <GridActionsCellItem
-          showInMenu
-          icon={<ExcelIcon/>}
-          label={t("button.export_spreadsheet")}
-          onClick={() => onExportToSpreadsheet(params.row as StockCard)}/>
-      ],
-    }
-  ]
-  const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('stockCardColumns', columns);
-  const onExportToSpreadsheet = async (stockCard: StockCard) => {
-    setBackgroundWork(true);
-    const workBook = new Excel.Workbook();
-    convertStockCardToWorkSheet(workBook, stockCard);
+  const onExportSpreadsheet = async (stockCard: StockCard) => {
+    setToExport(stockCard);
+  }
+  const onExportDismiss = () => setToExport(undefined);
+  const onExport = async (params: ExportParameters) => {
+    if (toExport) {
+      setBackgroundWork(true);
+      const workBook = new Excel.Workbook();
+      convertStockCardToWorkSheet(workBook, params.worksheetName, toExport);
 
-    const blob = await convertWorkbookToBlob(workBook)
-    if (linkRef && linkRef.current) {
-      linkRef.current.href = URL.createObjectURL(blob);
-      linkRef.current.download = `${t("document.stock_card")}.xlsx`;
-      linkRef.current.click();
+      const blob = await convertWorkbookToBlob(workBook)
+      if (linkRef && linkRef.current) {
+        linkRef.current.href = URL.createObjectURL(blob);
+        linkRef.current.download = `${params.fileName}${spreadsheetFileExtension}`;
+        linkRef.current.click();
+      }
+      setBackgroundWork(false);
     }
-    setBackgroundWork(false);
+    onExportDismiss();
   }
 
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -144,35 +128,6 @@ const StockCardScreen = (props: StockCardScreenProps) => {
     })
   }
 
-  const dataGrid = (
-    <DataGrid
-      components={{
-        LoadingOverlay: GridLinearProgress,
-        NoRowsOverlay: StockCardDataGridEmptyRows,
-        Toolbar: GridToolbar,
-        Pagination: isEnd && items.length > 0 && items.length === limit ? DataGridPaginationController : null,
-      }}
-      componentsProps={{
-        pagination: {
-          size: limit,
-          canBack: isStart,
-          canForward: isEnd,
-          onBackward: getPrev,
-          onForward: getNext,
-          onPageSizeChanged: onLimitChanged
-        }
-      }}
-      rows={items}
-      columns={columns}
-      density={density}
-      columnVisibilityModel={visibleColumns}
-      loading={isLoading}
-      getRowId={(r) => r.stockCardId}
-      onRowDoubleClick={onDataGridRowDoubleClicked}
-      onStateChange={(v) => onDensityChanged(v.density.value)}
-      onColumnVisibilityModelChange={(m) => onVisibilityChange(m)}/>
-  )
-
   return (
     <Box sx={{ width: '100%' }}>
       <InstantSearch searchClient={Provider} indexName="cards">
@@ -184,14 +139,22 @@ const StockCardScreen = (props: StockCardScreenProps) => {
           onSearchFocusChanged={setSearchMode}/>
         {canRead
           ? <>
-            <Box className={classes.wrapper} sx={{ display: { sx: 'none', sm: 'block' } }}>
-              {searchMode
-                ? <StockCardDataGrid
-                    onItemSelect={onDataGridRowDoubleClicked}
-                    onExportSpreadsheet={onExportToSpreadsheet}
-                    onRemoveInvoke={onRemoveInvoke}/>
-                : dataGrid
-              }
+            <Box className={classes.wrapper} sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <StockCardDataGrid
+                items={items}
+                size={limit}
+                canBack={isStart}
+                canForward={isEnd}
+                isLoading={isLoading}
+                isSearching={searchMode}
+                sortMethod={sortMethod}
+                onBackward={getPrev}
+                onForward={getNext}
+                onPageSizeChanged={onLimitChanged}
+                onItemSelect={onDataGridRowDoubleClicked}
+                onExportSpreadsheet={onExportSpreadsheet}
+                onRemoveInvoke={onRemoveInvoke}
+                onSortMethodChanged={onSortMethodChange}/>
             </Box>
             <Box sx={{ display: { sx: 'block', sm: 'none' }}}>
               {!isLoading
@@ -225,94 +188,30 @@ const StockCardScreen = (props: StockCardScreenProps) => {
         summary="dialog.stock_card_remove_summary"
         onConfirm={onStockCardRemove}
         onDismiss={onRemoveDismiss}/>
-      <BackgroundWorkDialog
-        isOpen={hasBackgroundWork}
-        title={t("dialog.generating_spreadsheet")}
-        summary={t("dialog.generating_spreadsheet_summary")}/>
+      <ExportSpreadsheetDialog
+        key="stockCardExport"
+        isOpen={Boolean(toExport)}
+        isWorking={hasBackgroundWork}
+        fileName={toExport?.description}
+        worksheetName={toExport?.entityName}
+        fileNameOptions={ toExport &&
+          [...(toExport!.entityName ? [toExport!.entityName] : []),
+            ...(toExport!.description ? [toExport!.description] : []),
+            ...(toExport!.stockNumber ? [toExport!.stockNumber] : [])
+          ]
+        }
+        worksheetOptions={ toExport &&
+          [...(toExport!.entityName ? [toExport!.entityName] : []),
+            ...(toExport!.description ? [toExport!.description] : []),
+            ...(toExport!.stockNumber ? [toExport!.stockNumber] : [])
+          ]
+        }
+        onDismiss={onExportDismiss}
+        onSubmit={onExport}/>
       <Box sx={{ display: 'none' }}>
         <a ref={linkRef} href="https://captive.apple.com">{t("button.download")}</a>
       </Box>
     </Box>
-  )
-}
-
-type StockCardDataGridProps = HitsProvided<StockCard> & {
-  onItemSelect: (params: GridRowParams) => void,
-  onExportSpreadsheet: (stockCard: StockCard) => void,
-  onRemoveInvoke: (stockCard: StockCard) => void,
-}
-const StockCardDataGridCore = (props: StockCardDataGridProps) => {
-  const { t } = useTranslation();
-  const { density, onDensityChanged } = useDensity('stockCardDensity');
-
-  const columns = [
-    { field: entityName, headerName: t("field.entity_name"), flex: 1 },
-    { field: assetStockNumber, headerName: t("field.stock_number"), flex: 1 },
-    { field: assetDescription, headerName: t("field.asset_description"), flex: 2 },
-    {
-      field: unitPrice,
-      headerName: t("field.unit_price"),
-      flex: 0.5,
-      valueGetter: (params: GridValueGetterParams) => currencyFormatter.format(params.value)
-    },
-    { field: assetUnitOfMeasure, headerName: t("field.unit_of_measure"), flex: 0.5 },
-    {
-      field: "actions",
-      type: "actions",
-      flex: 0.5,
-      getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          icon={<DeleteOutlineRounded/>}
-          label={t("button.delete")}
-          onClick={() => props.onRemoveInvoke(params.row as StockCard)}/>,
-        <GridActionsCellItem
-          showInMenu
-          icon={<ExcelIcon/>}
-          label={t("button.export_spreadsheet")}
-          onClick={() => props.onExportSpreadsheet(params.row as StockCard)}/>
-      ],
-    }
-  ];
-  const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('stockCardColumns', columns);
-
-  return (
-    <DataGrid
-      hideFooterPagination
-      components={{
-        LoadingOverlay: GridLinearProgress,
-        NoRowsOverlay: StockCardEmptyState,
-        Toolbar: GridToolbar
-      }}
-      columns={columns}
-      rows={props.hits}
-      density={density}
-      columnVisibilityModel={visibleColumns}
-      getRowId={(r) => r.stockCardId}
-      onRowDoubleClick={props.onItemSelect}
-      onStateChange={(v) => onDensityChanged(v.density.value)}
-      onColumnVisibilityModelChange={(newModel) =>
-        onVisibilityChange(newModel)
-      }/>
-  )
-}
-const StockCardDataGrid = connectHits<StockCardDataGridProps, StockCard>(StockCardDataGridCore);
-
-const StockCardEmptyState = () => {
-  const { t } = useTranslation();
-
-  return (
-    <EmptyStateComponent
-      icon={LocalAtmOutlined}
-      title={t("empty.stock_card_header")}
-      subtitle={t("empty.stock_card_summary")}/>
-  )
-}
-
-const StockCardDataGridEmptyRows = () => {
-  return (
-    <GridEmptyRow>
-      <StockCardEmptyState/>
-    </GridEmptyRow>
   )
 }
 

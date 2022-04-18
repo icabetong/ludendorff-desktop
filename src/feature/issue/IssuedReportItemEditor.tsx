@@ -20,7 +20,6 @@ import {
   TextField
 } from "@mui/material";
 import AssetPicker from "../asset/AssetPicker";
-import { useSnackbar } from "notistack";
 import { ExpandMoreRounded } from "@mui/icons-material";
 
 export type FormValues = {
@@ -38,7 +37,6 @@ type IssuedReportItemEditorProps = {
 
 export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
   const { t } = useTranslation();
-  const { enqueueSnackbar } = useSnackbar();
   const { handleSubmit, formState: { errors }, reset, control } = useForm<FormValues>();
   const [asset, setAsset] = useState<Asset | undefined>(undefined);
   const [isOpen, setOpen] = useState(false);
@@ -47,7 +45,7 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
     if (props.isOpen) {
       reset({
         quantityIssued: props.item?.quantityIssued ? props.item?.quantityIssued : 0,
-        responsibilityCenter: props.item?.responsibilityCenter
+        responsibilityCenter: props.item?.responsibilityCenter ? props.item?.responsibilityCenter : ""
       })
     }
   }, [props.isOpen, props.item, reset])
@@ -66,20 +64,24 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
   );
 
   const onSubmit = (data: FormValues) => {
-    if (!asset) {
-      enqueueSnackbar(t("feedback.empty_asset"));
-      return;
+    if (asset) {
+      let item: IssuedReportItem = {
+        ...data,
+        stockNumber: asset.stockNumber,
+        description: asset.description,
+        unitOfMeasure: asset.unitOfMeasure,
+        unitCost: asset.unitValue,
+        quantityIssued: parseInt(`${data.quantityIssued}`)
+      }
+      props.onSubmit(item);
+    } else if (props.item) {
+      let item: IssuedReportItem = {
+        ...data,
+        ...props.item,
+        quantityIssued: parseInt(`${data.quantityIssued}`)
+      }
+      props.onSubmit(item);
     }
-
-    let item: IssuedReportItem = {
-      ...data,
-      stockNumber: asset.stockNumber,
-      description: asset.description,
-      unitOfMeasure: asset.unitOfMeasure,
-      unitCost: asset.unitValue,
-      quantityIssued: parseInt(`${data.quantityIssued}`)
-    }
-    props.onSubmit(item);
   }
 
   return (

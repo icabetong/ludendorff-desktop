@@ -15,7 +15,7 @@ import DepartmentList from "./DepartmentList";
 
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import { PaginationController, PaginationControllerProps } from "../../components/PaginationController";
-import useQueryLimit from "../shared/useQueryLimit";
+import useQueryLimit from "../shared/hooks/useQueryLimit";
 
 type DepartmentPickerProps = PaginationControllerProps & {
   isOpen: boolean,
@@ -38,9 +38,15 @@ const DepartmentPicker = (props: DepartmentPickerProps) => {
       fullWidth={true}
       maxWidth="xs"
       open={props.isOpen}
-      onClose={() => props.onDismiss()}>
+      onClose={props.onDismiss}>
       <DialogTitle>{t("dialog.select_department")}</DialogTitle>
-      <DialogContent dividers={true}>
+      <DialogContent
+        dividers={true}
+        sx={{
+          minHeight: '60vh',
+          paddingX: 0,
+          '& .MuiList-padding': { padding: 0 }
+        }}>
         {canRead
           ? !props.isLoading
             ? <>

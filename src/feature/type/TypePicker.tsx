@@ -13,7 +13,7 @@ import { ErrorNoPermissionState } from "../state/ErrorStates";
 import { Type } from "./Type";
 import TypeList from "./TypeList";
 import { PaginationController, PaginationControllerProps } from "../../components/PaginationController";
-import useQueryLimit from "../shared/useQueryLimit";
+import useQueryLimit from "../shared/hooks/useQueryLimit";
 
 
 type TypePickerProps = PaginationControllerProps & {
@@ -38,7 +38,13 @@ const TypePicker = (props: TypePickerProps) => {
       open={props.isOpen}
       onClose={props.onDismiss}>
       <DialogTitle>{t("dialog.select_type")}</DialogTitle>
-      <DialogContent dividers={true}>
+      <DialogContent
+        dividers={true}
+        sx={{
+          minHeight: '60vh',
+          paddingX: 0,
+          '& .MuiList-padding': { padding: 0 }
+        }}>
         {canRead
           ? !props.isLoading
             ? <>

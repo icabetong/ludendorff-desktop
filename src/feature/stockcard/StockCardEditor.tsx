@@ -54,6 +54,8 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
   const [entries, setEntries] = useState<StockCardEntry[]>([]);
   const [state, dispatch] = useReducer(reducer, initialState);
   const [checked, setChecked] = useState<string[]>([]);
+  const [isFetching, setFetching] = useState(false);
+  const [isWriting, setWriting] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
   }, [props.isOpen, props.stockCard, setValue])
 
   const onDismiss = () => {
+    setWriting(false);
     props.onDismiss();
   }
 
@@ -75,11 +78,13 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
       } else return [];
     }
 
+    setFetching(true);
     fetchItems()
       .then((arr) => setEntries(arr))
       .catch((error) => {
         if (isDev) console.log(error)
       })
+      .finally(() => setFetching(false));
   }, [props.stockCard])
 
   const onEditorCreate = () => dispatch({ type: ActionType.CREATE });
@@ -94,6 +99,7 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
       currentEntries[index] = entry;
     }
     setEntries(currentEntries);
+    onEditorDismiss();
   }
 
   const onPickerInvoke = () => setOpen(true);
@@ -115,16 +121,17 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
   }
 
   const onSubmit = (values: FormValues) => {
-    if (!asset) {
+    if (!asset && !props.stockCard) {
       return;
     }
 
-    const { unitValue, ...remain } = asset;
     const stockCard: StockCard = {
+      entityName: values.entityName,
       stockCardId: props.stockCard ? props.stockCard.stockCardId : newId(),
-      ...values,
-      unitPrice: parseFloat(`${unitValue}`),
-      ...remain,
+      stockNumber: props.stockCard ? props.stockCard.stockNumber : asset!.stockNumber,
+      description: props.stockCard ? props.stockCard.description : asset!.description,
+      unitOfMeasure: props.stockCard ? props.stockCard.unitOfMeasure : asset!.unitOfMeasure,
+      unitPrice: props.stockCard ? props.stockCard.unitPrice : parseFloat(`${asset!.unitValue}`),
       entries: entries,
     }
 
@@ -157,6 +164,7 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
         <EditorRoot onSubmit={handleSubmit(onSubmit)}>
           <EditorAppBar
             title={t("dialog.details_stock_card")}
+            loading={isWriting}
             onDismiss={onDismiss}/>
           <EditorContent>
             <Box>
@@ -174,7 +182,8 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
                         inputRef={ref}
                         label={t("field.entity_name")}
                         error={errors.entityName !== undefined}
-                        helperText={errors.entityName?.message && t(errors.entityName?.message)}/>
+                        helperText={errors.entityName?.message && t(errors.entityName?.message)}
+                        disabled={isWriting}/>
                     )}
                     rules={{ required: { value: true, message: 'feedback.empty_entity_name' }}}/>
                 </Grid>
@@ -182,6 +191,7 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
                   <TextField
                     value={!props.stockCard ? asset?.description ? asset?.description : t("field.not_set") : props.stockCard.description }
                     label={t("field.asset")}
+                    disabled={isWriting}
                     InputProps={{
                       readOnly: true,
                       endAdornment: (
@@ -212,10 +222,11 @@ export const StockCardEditor = (props: StockCardEditorProps) => {
                   </Button>
                 </List>
               : <StockCardEntryDataGrid
+                  entries={entries}
+                  isLoading={isFetching}
                   onAddAction={onEditorCreate}
                   onRemoveAction={onCheckedRowsRemove}
                   onItemSelected={onEditorUpdate}
-                  entries={entries}
                   onCheckedRowsChanged={onCheckedRowsChanged}/>
             }
           </EditorContent>

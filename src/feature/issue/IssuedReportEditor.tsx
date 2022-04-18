@@ -50,11 +50,13 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
   const [date, setDate] = useState<Date | null>(new Date());
   const [items, setItems] = useState<IssuedReportItem[]>([]);
   const [checked, setChecked] = useState<string[]>([]);
+  const [isFetching, setFetching] = useState(false);
+  const [isWriting, setWriting] = useState(false);
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    setDate(props.report?.date ? props.report?.date?.toDate() : null)
-  }, [props.report])
+    setDate(props.report?.date ? props.report?.date?.toDate() : null);
+  }, [props.report]);
 
   useEffect(() => {
     if (props.isOpen) {
@@ -75,12 +77,19 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
       } else return [];
     }
 
+    setFetching(true);
     fetchItems()
       .then((arr) => setItems(arr))
       .catch((error) => {
         if (isDev) console.log(error);
       })
+      .finally(() => setFetching(false));
   }, [props.report]);
+
+  const onDismiss = () => {
+    setWriting(false);
+    props.onDismiss();
+  }
 
   const onEditorCreate = () => dispatch({ type: ActionType.CREATE });
   const onEditorDismiss = () => dispatch({ type: ActionType.DISMISS });
@@ -110,11 +119,12 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
       return;
     }
 
+    setWriting(true);
     const issuedReport: IssuedReport = {
       issuedReportId: props.report ? props.report.issuedReportId : newId(),
       ...data,
       items: items,
-      date: Timestamp.fromDate(date),
+      date: props.report ? props.report.date : Timestamp.fromDate(date),
     }
 
     if (props.isCreate) {
@@ -124,7 +134,7 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
           enqueueSnackbar(t("feedback.issued_report_create_error"))
           if (isDev) console.log(error);
         })
-        .finally(props.onDismiss)
+        .finally(onDismiss)
     } else {
       IssuedReportRepository.update(issuedReport)
         .then(() => enqueueSnackbar(t("feedback.issued_report_updated")))
@@ -132,7 +142,7 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
           enqueueSnackbar(t("feedback.issued_report_update_error"))
           if (isDev) console.log(error);
         })
-        .finally(props.onDismiss)
+        .finally(onDismiss)
     }
   }
 
@@ -144,7 +154,7 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
         onClose={props.onDismiss}
         TransitionComponent={Transition}>
         <EditorRoot onSubmit={handleSubmit(onSubmit)}>
-          <EditorAppBar title={t("dialog.details_issued")} onDismiss={props.onDismiss}/>
+          <EditorAppBar title={t("dialog.details_issued")} loading={isWriting} onDismiss={props.onDismiss}/>
           <EditorContent>
             <Box>
               <Grid container direction={smBreakpoint ? "column" : "row"} alignItems="stretch" justifyContent="center"
@@ -161,7 +171,8 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
                         inputRef={ref}
                         label={t("field.fund_cluster")}
                         error={errors.fundCluster !== undefined}
-                        helperText={errors.fundCluster?.message && t(errors.fundCluster?.message)}/>
+                        helperText={errors.fundCluster?.message && t(errors.fundCluster?.message)}
+                        disabled={isWriting}/>
                     )}
                     rules={{ required: { value: true, message: "feedback.empty_fund_cluster" }}}/>
                   <Controller
@@ -174,7 +185,8 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
                         inputRef={ref}
                         label={t("field.serial_number")}
                         error={errors.serialNumber !== undefined}
-                        helperText={errors.serialNumber?.message && t(errors.serialNumber?.message)}/>
+                        helperText={errors.serialNumber?.message && t(errors.serialNumber?.message)}
+                        disabled={isWriting}/>
                     )}
                     rules={{ required: { value: true, message: "feedback.empty_serial_number" }}}/>
                 </Grid>
@@ -199,7 +211,8 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
                         label={t("field.date")}
                         value={date}
                         onChange={setDate}
-                        renderInput={(params) => <TextField {...params} helperText={null}/>}/>
+                        renderInput={(params) => <TextField {...params} helperText={null}/>}
+                        disabled={isWriting}/>
                     </Box>
                   </LocalizationProvider>
                 </Grid>
@@ -222,11 +235,12 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
                 </Button>
               </List>
               : <IssuedReportItemDataGrid
-                onAddAction={onEditorCreate}
-                onRemoveAction={onCheckedRowsRemove}
-                onItemSelected={onEditorUpdate}
-                items={items}
-                onCheckedRowsChanged={onCheckedRowsChanged}/>
+                  isLoading={isFetching}
+                  items={items}
+                  onAddAction={onEditorCreate}
+                  onRemoveAction={onCheckedRowsRemove}
+                  onItemSelected={onEditorUpdate}
+                  onCheckedRowsChanged={onCheckedRowsChanged}/>
             }
           </EditorContent>
         </EditorRoot>
