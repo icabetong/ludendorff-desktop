@@ -1,7 +1,6 @@
 import { useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Fab, LinearProgress, MenuItem, Theme } from "@mui/material";
-import makeStyles from '@mui/styles/makeStyles';
+import { Box, Fab, LinearProgress, MenuItem } from "@mui/material";
 import { GridRowParams } from "@mui/x-data-grid";
 import { useSnackbar } from "notistack";
 import { AddRounded } from "@mui/icons-material";
@@ -17,8 +16,7 @@ import {
 } from "../../shared/const";
 import { ActionType, initialState, reducer } from "./AssetEditorReducer";
 import AssetEditor from "./AssetEditor";
-import TypeScreen from "../type/TypeScreen";
-import ConfirmationDialog from "../shared/ConfirmationDialog";
+import CategoryScreen from "../category/CategoryScreen";
 import { firestore } from "../../index";
 import { usePagination } from "use-pagination-firestore";
 import { InstantSearch } from "react-instantsearch-dom";
@@ -31,25 +29,22 @@ import AssetDataGrid from "./AssetDataGrid";
 import { AssetEmptyState } from "./AssetEmptyState";
 import useSort from "../shared/hooks/useSort";
 import { OrderByDirection } from "@firebase/firestore-types";
-
-const useStyles = makeStyles((theme: Theme) => ({
-  wrapper: {
-    height: '90%',
-    padding: '1.4em',
-    ...getDataGridTheme(theme)
-  },
-}));
+import { useDialog } from "../../components/DialogProvider";
+import AssetImportScreen from "./AssetImportScreen";
 
 type AssetScreenProps = ScreenProps
 const AssetScreen = (props: AssetScreenProps) => {
-  const classes = useStyles();
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const { canRead, canWrite } = usePermissions();
   const { limit, onLimitChanged } = useQueryLimit('assetQueryLimit');
-  const [asset, setAsset] = useState<Asset | null>(null);
   const [searchMode, setSearchMode] = useState(false);
+  const [importMode, setImportMode] = useState(false);
   const { sortMethod, onSortMethodChange } = useSort('assetSort');
+  const show = useDialog();
+
+  const onImportInvoke = () => setImportMode(true);
+  const onImportDismiss = () => setImportMode(false);
 
   const onParseQuery = () => {
     let field = assetDescription;
@@ -71,17 +66,21 @@ const AssetScreen = (props: AssetScreenProps) => {
     onParseQuery(), { limit: limit }
   );
 
-  const onRemoveInvoke = (asset: Asset) => setAsset(asset);
-  const onRemoveDismiss = () => setAsset(null);
-  const onAssetRemove = () => {
-    if (asset !== null) {
-      AssetRepository.remove(asset)
-        .then(() => enqueueSnackbar(t("feedback.asset_removed")))
-        .catch((error) => {
-          enqueueSnackbar(t("feedback.asset_remove_error"))
-          if (isDev) console.log(error)
-        })
-        .finally(onRemoveDismiss)
+  const onAssetRemove = async (asset: Asset) => {
+    try {
+      let result = await show({
+        title: t("dialog.asset_remove"),
+        description: t("dialog.asset_remove_summary"),
+        confirmButtonText: t("button.delete"),
+        dismissButtonText: t("button.cancel")
+      });
+      if (result) {
+        await AssetRepository.remove(asset);
+        enqueueSnackbar(t("feedback.asset_removed"));
+      }
+    } catch (error) {
+      enqueueSnackbar(t("feedback.asset_remove_error"))
+      if (isDev) console.log(error)
     }
   }
 
@@ -109,7 +108,7 @@ const AssetScreen = (props: AssetScreenProps) => {
   ];
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
       <InstantSearch
         searchClient={Provider}
         indexName="assets">
@@ -122,7 +121,7 @@ const AssetScreen = (props: AssetScreenProps) => {
           onSearchFocusChanged={setSearchMode}/>
         {canRead
           ? <>
-            <Box className={classes.wrapper} sx={{ display: { xs: 'none', sm: 'block' }}}>
+            <Box sx={(theme) => ({ flex: 1, padding: 3, display: { xs: 'none', sm: 'block' }, ...getDataGridTheme(theme)})}>
               <AssetDataGrid
                 items={items}
                 size={limit}
@@ -134,8 +133,9 @@ const AssetScreen = (props: AssetScreenProps) => {
                 onBackward={getPrev}
                 onForward={getNext}
                 onItemSelect={onDataGridRowDoubleClicked}
-                onRemoveInvoke={onRemoveInvoke}
+                onRemoveInvoke={onAssetRemove}
                 onTypesInvoke={onCategoryListView}
+                onImportsInvoke={onImportInvoke}
                 onPageSizeChanged={onLimitChanged}
                 onSortMethodChanged={onSortMethodChange}/>
             </Box>
@@ -146,7 +146,7 @@ const AssetScreen = (props: AssetScreenProps) => {
                   : <AssetList
                       assets={items}
                       onItemSelect={onAssetSelected}
-                      onItemRemove={onRemoveInvoke}/>
+                      onItemRemove={onAssetRemove}/>
                 : <LinearProgress/>
               }
               <Fab
@@ -165,15 +165,10 @@ const AssetScreen = (props: AssetScreenProps) => {
         isCreate={state.isCreate}
         asset={state.asset}
         onDismiss={onAssetEditorDismiss}/>
-      <TypeScreen
+      <AssetImportScreen isOpen={importMode} onDismiss={onImportDismiss}/>
+      <CategoryScreen
         isOpen={isCategoryOpen}
         onDismiss={onCategoryListDismiss}/>
-      <ConfirmationDialog
-        isOpen={Boolean(asset)}
-        title="dialog.asset_remove"
-        summary="dialog.asset_remove_summary"
-        onDismiss={onRemoveDismiss}
-        onConfirm={onAssetRemove}/>
     </Box>
   );
 }

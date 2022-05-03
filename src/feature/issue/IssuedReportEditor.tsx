@@ -27,6 +27,7 @@ import { IssuedReportItemEditor } from "./IssuedReportItemEditor";
 import { EditorAppBar, EditorContent, EditorRoot, Transition } from "../../components/EditorComponent";
 import IssuedReportItemDataGrid from "./IssuedReportItemDataGrid";
 import { GridSelectionModel } from "@mui/x-data-grid";
+import { useEntity } from "../entity/UseEntity";
 
 type IssuedReportEditorProps = {
   isOpen: boolean,
@@ -45,6 +46,7 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
+  const { entity } = useEntity();
   const smBreakpoint = useMediaQuery(theme.breakpoints.down('sm'));
   const { handleSubmit, formState: { errors }, control, reset } = useForm<FormValues>();
   const [date, setDate] = useState<Date | null>(new Date());
@@ -55,16 +57,12 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    setDate(props.report?.date ? props.report?.date?.toDate() : null);
-  }, [props.report]);
-
-  useEffect(() => {
     if (props.isOpen) {
       reset({
-        fundCluster: props.report?.fundCluster,
-        entityName: props.report?.entityName,
-        serialNumber: props.report?.serialNumber
-      })
+        fundCluster: props.report?.fundCluster ? props.report?.fundCluster : "",
+        serialNumber: props.report?.serialNumber ? props.report?.serialNumber : ""
+      });
+      setDate(props.report?.date ? props.report?.date.toDate() : null);
     }
   }, [props.isOpen, props.report, reset])
 
@@ -96,7 +94,7 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
   const onEditorUpdate = (item: IssuedReportItem) => dispatch({ type: ActionType.UPDATE, payload: item });
   const onEditorCommit = (item: IssuedReportItem) => {
     let currentItems = Array.from(items);
-    let index = currentItems.findIndex((i) => i.stockNumber === item.stockNumber);
+    let index = currentItems.findIndex((i) => i.issuedReportItemId === item.issuedReportItemId);
     if (index < 0) {
       currentItems.push(item);
     } else {
@@ -109,7 +107,7 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
   const onCheckedRowsRemove = () => {
     let currentItems = Array.from(items);
     checked.forEach((id: string) => {
-      currentItems = currentItems.filter((i) => i.stockNumber !== id);
+      currentItems = currentItems.filter((i) => i.issuedReportItemId !== id);
     });
     setItems(currentItems);
   }
@@ -121,10 +119,11 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
 
     setWriting(true);
     const issuedReport: IssuedReport = {
-      issuedReportId: props.report ? props.report.issuedReportId : newId(),
       ...data,
       items: items,
-      date: props.report ? props.report.date : Timestamp.fromDate(date),
+      issuedReportId: props.report ? props.report.issuedReportId : newId(),
+      date: Timestamp.fromDate(date),
+      entityName: entity?.entityName,
     }
 
     if (props.isCreate) {
@@ -157,8 +156,12 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
           <EditorAppBar title={t("dialog.details_issued")} loading={isWriting} onDismiss={props.onDismiss}/>
           <EditorContent>
             <Box>
-              <Grid container direction={smBreakpoint ? "column" : "row"} alignItems="stretch" justifyContent="center"
-                    spacing={smBreakpoint ? 0 : 4}>
+              <Grid
+                container
+                direction={smBreakpoint ? "column" : "row"}
+                alignItems="stretch"
+                justifyContent="center"
+                spacing={smBreakpoint ? 0 : 4}>
                 <Grid item xs={6} sx={{ maxWidth: '100%', pt: 0, pl: 0 }}>
                   <Controller
                     name="fundCluster"
@@ -191,18 +194,11 @@ const IssuedReportEditor = (props: IssuedReportEditorProps) => {
                     rules={{ required: { value: true, message: "feedback.empty_serial_number" }}}/>
                 </Grid>
                 <Grid item xs={6} sx={{ maxWidth: '100%', pt: 0, pl: 0 }}>
-                  <Controller
-                    name="entityName"
-                    control={control}
-                    render={({ field: { ref, ...inputProps }}) => (
-                      <TextField
-                        {...inputProps}
-                        inputRef={ref}
-                        label={t("field.entity_name")}
-                        error={errors.entityName !== undefined}
-                        helperText={errors.entityName?.message && t(errors.entityName?.message)}/>
-                    )}
-                    rules={{ required: { value: true, message: "feedback.empty_entity_name" }}}/>
+                  <TextField
+                    label={t("field.entity")}
+                    value={t("template.entity", { name: entity?.entityName, position: entity?.entityPosition })}
+                    disabled={isWriting}
+                    InputProps={{ readOnly: true }}/>
                   <LocalizationProvider dateAdapter={DateAdapter}>
                     <Box>
                       <DatePicker

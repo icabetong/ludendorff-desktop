@@ -1,14 +1,14 @@
 import { doc, increment, writeBatch } from "firebase/firestore";
 import { firestore } from "../../index";
 
-import { TypeCore } from '../type/Type';
-import { assetCollection, typeCollection, typeCount } from "../../shared/const";
+import { CategoryCore } from '../category/Category';
+import { assetCollection, categoryCollection, categoryCount } from "../../shared/const";
 
 export type Asset = {
   stockNumber: string,
   description?: string,
-  type?: TypeCore,
-  classification?: string,
+  category?: CategoryCore,
+  subcategory?: string,
   unitOfMeasure?: string,
   unitValue: number,
   remarks?: string,
@@ -16,15 +16,30 @@ export type Asset = {
 
 export class AssetRepository {
 
+  static async createFromArray(assets: Asset[]): Promise<void> {
+    let batch = writeBatch(firestore);
+    assets.forEach((asset) => {
+      batch.set(doc(firestore, assetCollection, asset.stockNumber), asset);
+
+      let id = asset.category?.categoryId;
+      if (id) {
+        batch.update(doc(firestore, categoryCollection, id),
+          categoryCollection, increment(1));
+      }
+    });
+
+    return await batch.commit();
+  }
+
   static async create(asset: Asset): Promise<void> {
     let batch = writeBatch(firestore);
 
     batch.set(doc(firestore, assetCollection, asset.stockNumber), asset);
 
-    let id = asset.type?.typeId;
+    let id = asset.category?.categoryId;
     if (id) {
-      batch.update(doc(firestore, typeCollection, id),
-        typeCollection, increment(1));
+      batch.update(doc(firestore, categoryCollection, id),
+        categoryCollection, increment(1));
     }
 
     return await batch.commit()
@@ -34,12 +49,12 @@ export class AssetRepository {
     let batch = writeBatch(firestore);
     batch.set(doc(firestore, assetCollection, asset.stockNumber), asset)
 
-    let currentCategoryId = asset.type?.typeId;
+    let currentCategoryId = asset.category?.categoryId;
     if (previousCategoryId && currentCategoryId && currentCategoryId !== previousCategoryId) {
-      batch.update(doc(firestore, typeCollection, currentCategoryId), typeCount,
+      batch.update(doc(firestore, categoryCollection, currentCategoryId), categoryCount,
         increment(1))
 
-      batch.update(doc(firestore, typeCollection, previousCategoryId), typeCount,
+      batch.update(doc(firestore, categoryCollection, previousCategoryId), categoryCount,
         increment(-1))
     }
 
@@ -51,9 +66,9 @@ export class AssetRepository {
 
     batch.delete(doc(firestore, assetCollection, asset.stockNumber));
 
-    let categoryId = asset.type?.typeId;
+    let categoryId = asset.category?.categoryId;
     if (categoryId) {
-      batch.update(doc(firestore, typeCollection, categoryId), typeCount, increment(-1));
+      batch.update(doc(firestore, categoryCollection, categoryId), categoryCount, increment(-1));
     }
 
     return await batch.commit();

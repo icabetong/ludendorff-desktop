@@ -19,11 +19,9 @@ type State = {
 export const initialState: State = {
   entry: {
     stockCardEntryId: newId(),
-    receiptQuantity: 0,
+    receivedQuantity: 0,
     requestedQuantity: 0,
     issueQuantity: 0,
-    balanceQuantity: 0,
-    balanceTotalPrice: 0
   },
   isCreate: true,
   isOpen: false,

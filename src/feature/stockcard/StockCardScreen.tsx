@@ -1,5 +1,4 @@
-import makeStyles from "@mui/styles/makeStyles";
-import { Box, Fab, LinearProgress, Theme } from "@mui/material";
+import { Box, Fab, LinearProgress } from "@mui/material";
 import { getDataGridTheme } from "../core/Core";
 import { useTranslation } from "react-i18next";
 import { AddRounded } from "@mui/icons-material";
@@ -23,7 +22,6 @@ import { Provider } from "../../components/Search";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import StockCardList from "./StockCardList";
 import { StockCardEditor } from "./StockCardEditor";
-import ConfirmationDialog from "../shared/ConfirmationDialog";
 import AdaptiveHeader from "../../components/AdaptiveHeader";
 import useQueryLimit from "../shared/hooks/useQueryLimit";
 import { convertStockCardToWorkSheet } from "./StockCardSheet";
@@ -34,25 +32,14 @@ import StockCardDataGrid from "./StockCardDataGrid";
 import { StockCardEmptyState } from "./StockCardEmptyState";
 import { OrderByDirection } from "@firebase/firestore-types";
 import useSort from "../shared/hooks/useSort";
-
-const useStyles = makeStyles((theme: Theme) => ({
-  root: {
-    width: '100%',
-  },
-  wrapper: {
-    height: '90%',
-    padding: '1.4em',
-    ...getDataGridTheme(theme)
-  }
-}));
+import { useDialog } from "../../components/DialogProvider";
 
 type StockCardScreenProps = ScreenProps
 const StockCardScreen = (props: StockCardScreenProps) => {
-  const classes = useStyles();
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
+  const show = useDialog();
   const { canRead, canWrite } = usePermissions();
-  const [stockCard, setStockCard] = useState<StockCard | null>(null);
   const [searchMode, setSearchMode] = useState(false);
   const [hasBackgroundWork, setBackgroundWork] = useState(false);
   const [toExport, setToExport] = useState<StockCard | undefined>(undefined);
@@ -80,21 +67,25 @@ const StockCardScreen = (props: StockCardScreenProps) => {
     onParseQuery(), { limit: limit }
   )
 
-  const onRemoveInvoke = (stockCard: StockCard) => setStockCard(stockCard);
-  const onRemoveDismiss = () => setStockCard(null);
-  const onStockCardRemove = () => {
-    if (stockCard) {
-      StockCardRepository.remove(stockCard)
-        .then(() => enqueueSnackbar(t("feedback.stock_card_removed")))
-        .catch((error) => {
-          enqueueSnackbar(t("feedback.stock_card_remove_error"))
-          if (isDev) console.log(error)
-        })
-        .finally(onRemoveDismiss)
+  const onRemoveInvoke = async (stockCard: StockCard) => {
+    try {
+      let result = await show({
+        title: t("dialog.stock_card_remove"),
+        description: t("dialog.stock_card_remove_summary"),
+        confirmButtonText: t("button.delete"),
+        dismissButtonText: t("button.cancel")
+      });
+      if (result) {
+        await StockCardRepository.remove(stockCard);
+        enqueueSnackbar(t("feedback.stock_card_removed"));
+      }
+    } catch (error) {
+      enqueueSnackbar(t("feedback.stock_card_remove_error"));
+      if (isDev) console.log(error);
     }
   }
 
-  const onExportSpreadsheet = async (stockCard: StockCard) => {
+  const onExportSpreadsheet = (stockCard: StockCard) => {
     setToExport(stockCard);
   }
   const onExportDismiss = () => setToExport(undefined);
@@ -102,7 +93,11 @@ const StockCardScreen = (props: StockCardScreenProps) => {
     if (toExport) {
       setBackgroundWork(true);
       const workBook = new Excel.Workbook();
-      convertStockCardToWorkSheet(workBook, params.worksheetName, toExport);
+
+      let entries = await StockCardRepository.fetch(toExport.stockCardId);
+      let stockCard = toExport;
+      stockCard.entries = entries;
+      convertStockCardToWorkSheet(workBook, params.worksheetName, stockCard);
 
       const blob = await convertWorkbookToBlob(workBook)
       if (linkRef && linkRef.current) {
@@ -129,7 +124,7 @@ const StockCardScreen = (props: StockCardScreenProps) => {
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
       <InstantSearch searchClient={Provider} indexName="cards">
         <AdaptiveHeader
           title={t("navigation.stock_cards")}
@@ -139,7 +134,7 @@ const StockCardScreen = (props: StockCardScreenProps) => {
           onSearchFocusChanged={setSearchMode}/>
         {canRead
           ? <>
-            <Box className={classes.wrapper} sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <Box sx={(theme) => ({ flex: 1, padding: 3, display: { xs: 'none', sm: 'block' }, ...getDataGridTheme(theme)})}>
               <StockCardDataGrid
                 items={items}
                 size={limit}
@@ -182,12 +177,6 @@ const StockCardScreen = (props: StockCardScreenProps) => {
         isCreate={state.isCreate}
         stockCard={state.stockCard}
         onDismiss={onStockCardEditorDismiss}/>
-      <ConfirmationDialog
-        isOpen={stockCard !== null}
-        title="dialog.stock_card_remove"
-        summary="dialog.stock_card_remove_summary"
-        onConfirm={onStockCardRemove}
-        onDismiss={onRemoveDismiss}/>
       <ExportSpreadsheetDialog
         key="stockCardExport"
         isOpen={Boolean(toExport)}

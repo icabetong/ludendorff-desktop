@@ -8,10 +8,9 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   InputAdornment,
-  TextField
+  TextField,
 } from "@mui/material";
 import { Asset } from "../asset/Asset";
 import { useState, useEffect } from "react";
@@ -23,6 +22,7 @@ import { assetCollection, assetStockNumber } from "../../shared/const";
 import { ExpandMoreRounded } from "@mui/icons-material";
 
 export type FormValues = {
+  unitValue: number,
   balancePerCard: number,
   onHandCount: number,
   supplier: string,
@@ -38,13 +38,14 @@ type InventoryReportItemEditorProps = {
 
 export const InventoryReportItemEditor = (props: InventoryReportItemEditorProps) => {
   const { t } = useTranslation();
-  const { handleSubmit, formState: { errors }, reset, control } = useForm<FormValues>();
+  const { handleSubmit, formState: { errors }, reset, control, setValue } = useForm<FormValues>();
   const [asset, setAsset] = useState<Asset | undefined>(undefined);
   const [isOpen, setOpen] = useState(false);
 
   useEffect(() => {
     if (props.isOpen) {
       reset({
+        unitValue: props.item?.unitValue ? props.item?.unitValue : 0,
         balancePerCard: props.item?.balancePerCard ? props.item?.balancePerCard : 0,
         onHandCount: props.item?.onHandCount ? props.item?.onHandCount : 0,
         supplier: props.item?.supplier ? props.item?.supplier : "",
@@ -68,9 +69,9 @@ export const InventoryReportItemEditor = (props: InventoryReportItemEditorProps)
     if (asset) {
       let item: InventoryReportItem = {
         stockNumber: asset.stockNumber,
-        article: asset.classification,
+        article: asset.subcategory,
         description: asset.description,
-        type: asset.type,
+        category: asset.category,
         unitOfMeasure: asset.unitOfMeasure,
         unitValue: asset.unitValue,
         remarks: asset.remarks,
@@ -86,6 +87,11 @@ export const InventoryReportItemEditor = (props: InventoryReportItemEditorProps)
       }
       props.onSubmit(item);
     }
+  }
+
+  const onAssetPicked = (asset: Asset) => {
+    setAsset(asset);
+    setValue("unitValue", asset.unitValue);
   }
 
   return (
@@ -112,7 +118,30 @@ export const InventoryReportItemEditor = (props: InventoryReportItemEditorProps)
                     </InputAdornment>
                   )
                 }}/>
-              <Divider sx={{ my: 2 }}/>
+              <Controller
+                name="unitValue"
+                control={control}
+                render={({ field: { ref, ...inputProps }}) => (
+                  <TextField
+                    {...inputProps}
+                    inputRef={ref}
+                    label={t("field.unit_value")}
+                    error={errors.unitValue !== undefined}
+                    disabled={!props.item ? !asset : false}
+                    helperText={errors.unitValue?.message !== undefined ? t(errors.unitValue.message) : undefined}
+                    inputProps={{
+                      inputMode: 'numeric',
+                      pattern: '[0-9]*',
+                      min: 0,
+                      step: 0.01,
+                      type: "number"
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">₱</InputAdornment>
+                      )
+                    }}/>
+                )}/>
               <Controller
                 name="balancePerCard"
                 control={control}
@@ -178,7 +207,7 @@ export const InventoryReportItemEditor = (props: InventoryReportItemEditorProps)
         onBackward={getPrev}
         onForward={getNext}
         onDismiss={onPickerDismiss}
-        onSelectItem={setAsset}/>
+        onSelectItem={onAssetPicked}/>
     </>
   );
 }

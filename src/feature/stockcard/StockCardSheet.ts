@@ -130,16 +130,25 @@ const convertStockCardToWorkSheet = (workBook: Excel.Workbook, name: string, sto
 
   workSheet.addRows([
     ...stockCard.entries.map((entry) => {
+      let sourceId = entry.inventoryReportSourceId;
+      let balanceQuantity = 0;
+      let balanceTotalPrice = 0;
+      if (sourceId) {
+        let balanceEntry = stockCard.balances[sourceId];
+        let innerEntry = balanceEntry.entries[entry.stockCardEntryId];
+        balanceQuantity = innerEntry;
+        balanceTotalPrice = innerEntry * stockCard.unitPrice;
+      }
+
       return [
         formatDate(entry.date),
         entry.reference,
-        entry.receiptQuantity,
+        entry.receivedQuantity,
         entry.requestedQuantity,
         entry.issueQuantity,
         entry.issueOffice,
-        entry.balanceQuantity,
-        entry.balanceTotalPrice,
-        ""
+        balanceQuantity,
+        balanceTotalPrice,
       ]
     })
   ])

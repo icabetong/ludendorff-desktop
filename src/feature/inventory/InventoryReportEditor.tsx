@@ -21,13 +21,13 @@ import DateAdapter from '@mui/lab/AdapterDateFns';
 import { ActionType, initialState, reducer } from "./InventoryReportItemEditorReducer";
 import { InventoryReportItemEditor } from "./InventoryReportItemEditor";
 import { isDev, newId } from "../../shared/utils";
-import { format } from "date-fns";
 import { Timestamp } from "firebase/firestore";
 import { EditorAppBar, EditorContent, EditorRoot, Transition } from "../../components/EditorComponent";
 import InventoryReportItemDataGrid from "./InventoryReportItemDataGrid";
 import InventoryReportItemList from "./InventoryReportItemList";
 import { AddRounded } from "@mui/icons-material";
 import { GridRowId, GridSelectionModel } from "@mui/x-data-grid";
+import { useEntity } from "../entity/UseEntity";
 
 type InventoryReportEditorProps = {
   isOpen: boolean,
@@ -38,17 +38,16 @@ type InventoryReportEditorProps = {
 
 export type FormValues = {
   fundCluster: string,
-  entityName: string,
-  entityPosition: string,
 }
 
 const InventoryReportEditor = (props: InventoryReportEditorProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
+  const { entity } = useEntity();
   const smBreakpoint = useMediaQuery(theme.breakpoints.down('sm'));
   const { handleSubmit, formState: { errors }, reset, control } = useForm<FormValues>();
-  const [yearMonth, setYearMonth] = useState<Date | null>(new Date());
+  const [yearMonth, setYearMonth] = useState<string | null>(null);
   const [date, setDate] = useState<Date | null>(new Date());
   const [items, setItems] = useState<InventoryReportItem[]>([]);
   const [checked, setChecked] = useState<string[]>([]);
@@ -59,20 +58,15 @@ const InventoryReportEditor = (props: InventoryReportEditorProps) => {
   const onDismiss = () => {
     setWriting(false);
     props.onDismiss();
-    reset();
   }
-
-  useEffect(() => {
-    setDate(props.report?.accountabilityDate ? props.report?.accountabilityDate?.toDate() : null)
-  }, [props.report])
 
   useEffect(() => {
     if (props.isOpen) {
       reset({
         fundCluster: props.report?.fundCluster ? props.report?.fundCluster : "",
-        entityName: props.report?.entityName ? props.report?.entityName : "",
-        entityPosition: props.report?.entityPosition ? props.report?.entityPosition : ""
-      })
+      });
+      setDate(props.report?.accountabilityDate ? props.report?.accountabilityDate?.toDate() : null);
+      setYearMonth(props.report?.yearMonth ? props.report?.yearMonth : null);
     }
   }, [props.isOpen, props.report, reset])
 
@@ -133,7 +127,7 @@ const InventoryReportEditor = (props: InventoryReportEditorProps) => {
       inventoryReportId: props.report ? props.report.inventoryReportId : newId(),
       ...data,
       items: items,
-      yearMonth: format(yearMonth, "MMMM yyyy"),
+      yearMonth: yearMonth,
       accountabilityDate: Timestamp.fromDate(date)
     }
 
@@ -158,11 +152,7 @@ const InventoryReportEditor = (props: InventoryReportEditorProps) => {
 
   return (
     <>
-      <Dialog
-        fullScreen={true}
-        open={props.isOpen}
-        onClose={onDismiss}
-        TransitionComponent={Transition}>
+      <Dialog open={props.isOpen} TransitionComponent={Transition} fullScreen>
         <EditorRoot onSubmit={handleSubmit(onSubmit)}>
           <EditorAppBar title={t("dialog.details_inventory")} loading={isWriting} onDismiss={onDismiss}/>
           <EditorContent>
@@ -192,36 +182,10 @@ const InventoryReportEditor = (props: InventoryReportEditorProps) => {
                         disabled={isWriting}/>
                     )}
                     rules={{ required: { value: true, message: "feedback.empty_fund_cluster" }}}/>
-                  <Controller
-                    name="entityName"
-                    control={control}
-                    render={({ field: { ref, ...inputProps } }) => (
-                      <TextField
-                        {...inputProps}
-                        type="text"
-                        inputRef={ref}
-                        label={t("field.entity_name")}
-                        error={errors.entityName !== undefined}
-                        helperText={errors.entityName?.message && t(errors.entityName?.message)}
-                        placeholder={t("placeholder.entity_name")}
-                        disabled={isWriting}/>
-                    )}
-                    rules={{ required: { value: true, message: "feedback.empty_entity_name" }}}/>
-                  <Controller
-                    name="entityPosition"
-                    control={control}
-                    render={({ field: { ref, ...inputProps } }) => (
-                      <TextField
-                        {...inputProps}
-                        type="text"
-                        inputRef={ref}
-                        label={t("field.entity_position")}
-                        error={errors.entityPosition !== undefined}
-                        helperText={errors.entityPosition?.message && t(errors.entityPosition?.message)}
-                        placeholder={t("placeholder.entity_position")}
-                        disabled={isWriting}/>
-                    )}
-                    rules={{ required: { value: true, message: "feedback.empty_entity_position" }}}/>
+                  <TextField
+                    label={t("field.entity")}
+                    value={t("template.entity", { name: entity?.entityName, position: entity?.entityPosition })}
+                    disabled={isWriting}/>
                 </Grid>
                 <Grid
                   item

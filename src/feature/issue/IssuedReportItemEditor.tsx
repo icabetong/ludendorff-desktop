@@ -14,15 +14,16 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   InputAdornment,
-  TextField
+  TextField,
 } from "@mui/material";
 import AssetPicker from "../asset/AssetPicker";
-import { ExpandMoreRounded } from "@mui/icons-material";
+import { ArrowDropDown } from "@mui/icons-material";
+import { newId } from "../../shared/utils";
 
 export type FormValues = {
+  unitCost: number,
   quantityIssued: number,
   responsibilityCenter?: string,
 }
@@ -37,13 +38,14 @@ type IssuedReportItemEditorProps = {
 
 export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
   const { t } = useTranslation();
-  const { handleSubmit, formState: { errors }, reset, control } = useForm<FormValues>();
+  const { handleSubmit, formState: { errors }, reset, control, setValue } = useForm<FormValues>();
   const [asset, setAsset] = useState<Asset | undefined>(undefined);
   const [isOpen, setOpen] = useState(false);
 
   useEffect(() => {
     if (props.isOpen) {
       reset({
+        unitCost: props.item?.unitCost ? props.item?.unitCost : 0,
         quantityIssued: props.item?.quantityIssued ? props.item?.quantityIssued : 0,
         responsibilityCenter: props.item?.responsibilityCenter ? props.item?.responsibilityCenter : ""
       })
@@ -52,6 +54,7 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
 
   const onDismiss = () => {
     props.onDismiss();
+    setAsset(undefined);
   }
 
   const onPickerInvoke = () => setOpen(true);
@@ -67,6 +70,7 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
     if (asset) {
       let item: IssuedReportItem = {
         ...data,
+        issuedReportItemId: props.item ? props.item.issuedReportItemId : newId(),
         stockNumber: asset.stockNumber,
         description: asset.description,
         unitOfMeasure: asset.unitOfMeasure,
@@ -82,6 +86,12 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
       }
       props.onSubmit(item);
     }
+    onDismiss()
+  }
+
+  const onAssetPicked = (asset: Asset) => {
+    setAsset(asset);
+    setValue("unitCost", asset.unitValue);
   }
 
   return (
@@ -102,12 +112,35 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton onClick={onPickerInvoke} edge="end">
-                        <ExpandMoreRounded/>
+                        <ArrowDropDown/>
                       </IconButton>
                     </InputAdornment>
                   )
                 }}/>
-              <Divider sx={{ my: 2 }}/>
+              <Controller
+                name="unitCost"
+                control={control}
+                render={({ field: { ref, ...inputProps }}) => (
+                  <TextField
+                    {...inputProps}
+                    inputRef={ref}
+                    label={t("field.unit_cost")}
+                    error={errors.unitCost !== undefined}
+                    disabled={!props.item ? !asset : false}
+                    helperText={errors.unitCost?.message !== undefined ? t(errors.unitCost.message) : undefined}
+                    inputProps={{
+                      inputMode: 'numeric',
+                      pattern: '[0-9]*',
+                      min: 0,
+                      step: 0.01,
+                      type: "number"
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">₱</InputAdornment>
+                      )
+                    }}/>
+                )}/>
               <Controller
                 name="quantityIssued"
                 control={control}
@@ -162,7 +195,7 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
         onBackward={getPrev}
         onForward={getNext}
         onDismiss={onPickerDismiss}
-        onSelectItem={setAsset}/>
+        onSelectItem={onAssetPicked}/>
     </>
   )
 }

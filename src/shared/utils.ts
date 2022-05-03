@@ -48,3 +48,9 @@ export const isElectron = () => {
   const userAgent = navigator.userAgent.toLowerCase();
   return userAgent.indexOf('electron/') !== -1;
 }
+
+export function chunck<T>(arr: T[], size: number) {
+  return Array.from({ length: Math.ceil(arr.length / size )}, function(v, i) {
+    return arr.slice(i * size, i * size + size);
+  });
+}

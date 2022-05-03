@@ -3,7 +3,7 @@ import { InventoryReport } from "./InventoryReport";
 import { DataGrid, GridActionsCellItem, GridRowParams, GridValueGetterParams } from "@mui/x-data-grid";
 import { DataGridProps } from "../shared/types/DataGridProps";
 import { useTranslation } from "react-i18next";
-import { accountabilityDate, entityName, entityPosition, fundCluster, yearMonth } from "../../shared/const";
+import { accountabilityDate, fundCluster, yearMonth } from "../../shared/const";
 import { formatDate } from "../../shared/utils";
 import { DeleteOutlineRounded } from "@mui/icons-material";
 import { ExcelIcon } from "../../components/CustomIcons";
@@ -25,8 +25,6 @@ const InventoryReportDataGridCore = (props: InventoryReportDataGridProps) => {
   const { t } = useTranslation();
   const columns = [
     { field: fundCluster, headerName: t("field.fund_cluster"), flex: 1 },
-    { field: entityName, headerName: t("field.entity_name"), flex: 1 },
-    { field: entityPosition, headerName: t("field.entity_position"), flex: 1 },
     { field: yearMonth, headerName: t("field.year_month"), flex: 1 },
     {
       field: accountabilityDate,

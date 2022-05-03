@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, Timestamp, writeBatch } from "firebase/firestore";
 import { firestore } from "../../index";
-import { issuedCollection, items as itemsCollection } from "../../shared/const";
+import { issuedCollection, issuedItems as itemsCollection } from "../../shared/const";
 import { getIdTokenRefreshed } from "../user/User";
 import axios from "axios";
 import { SERVER_URL } from "../../shared/utils";
@@ -15,12 +15,24 @@ export type IssuedReport = {
 }
 
 export type IssuedReportItem = {
+  issuedReportItemId: string,
   stockNumber: string,
   description?: string,
   unitOfMeasure?: string,
   quantityIssued: number,
   unitCost: number,
   responsibilityCenter?: string,
+}
+
+export type GroupedIssuedReportItem = {
+  [key: string]: IssuedReportItem[]
+}
+
+export function groupIssuedReportItemsByStockNumber(items: IssuedReportItem[]): GroupedIssuedReportItem {
+  return items.reduce((r, a) => {
+    r[a.stockNumber]  = [...r[a.stockNumber] || [], a];
+    return r;
+  }, {} as GroupedIssuedReportItem);
 }
 
 export class IssuedReportRepository {
@@ -69,9 +81,8 @@ export class IssuedReportRepository {
 
     batch.set(docReference, report);
     items.forEach((item) => {
-      batch.set(doc(firestore, issuedCollection, report.issuedReportId, itemsCollection, item.stockNumber), item);
+      batch.set(doc(firestore, issuedCollection, report.issuedReportId, itemsCollection, item.issuedReportItemId), item);
     });
-
     await batch.commit();
 
     let token = await getIdTokenRefreshed();

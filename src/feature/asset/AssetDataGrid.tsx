@@ -7,13 +7,13 @@ import { connectHits } from "react-instantsearch-dom";
 import GridLinearProgress from "../../components/datagrid/GridLinearProgress";
 import GridToolbar from "../../components/datagrid/GridToolbar";
 import { Button } from "@mui/material";
-import { DeleteOutlineRounded, LocalOfferRounded } from "@mui/icons-material";
+import { DeleteOutlineRounded, CategoryRounded, UploadRounded } from "@mui/icons-material";
 import { AssetDataGridEmptyState } from "./AssetEmptyState";
 import {
-  assetClassification,
+  assetSubcategory,
   assetDescription, assetRemarks,
   assetStockNumber,
-  assetType,
+  assetCategory,
   assetUnitOfMeasure, assetUnitValue
 } from "../../shared/const";
 import { currencyFormatter } from "../../shared/utils";
@@ -25,6 +25,7 @@ type AssetDataGridProps = HitsProvided<Asset> & DataGridProps<Asset> & {
   onItemSelect: (params: GridRowParams) => void,
   onRemoveInvoke: (asset: Asset) => void,
   onTypesInvoke: () => void,
+  onImportsInvoke: () => void,
 }
 
 const AssetDataGridCore = (props: AssetDataGridProps) => {
@@ -33,17 +34,17 @@ const AssetDataGridCore = (props: AssetDataGridProps) => {
     { field: assetStockNumber, headerName: t("field.stock_number"), flex: 1 },
     { field: assetDescription, headerName: t("field.asset_description"), flex: 1.5 },
     {
-      field: assetType,
-      headerName: t("field.type"),
+      field: assetCategory,
+      headerName: t("field.category"),
       flex: 1,
       valueGetter: (params: GridValueGetterParams) => {
         let asset = params.row as Asset;
-        return asset.type?.typeName === undefined ? t("unknown") : asset.type?.typeName;
+        return asset.category?.categoryName === undefined ? t("unknown") : asset.category?.categoryName;
       }
     },
     {
-      field: assetClassification,
-      headerName: t("field.classification"),
+      field: assetSubcategory,
+      headerName: t("field.subcategory"),
       flex: 1,
     },
     {
@@ -93,9 +94,17 @@ const AssetDataGridCore = (props: AssetDataGridProps) => {
               key="types"
               color="primary"
               size="small"
-              startIcon={<LocalOfferRounded fontSize="small"/>}
+              startIcon={<CategoryRounded fontSize="small"/>}
               onClick={props.onTypesInvoke}>
-              {t("navigation.types")}
+              {t("navigation.categories")}
+            </Button>,
+            <Button
+              key="imports"
+              color="primary"
+              size="small"
+              startIcon={<UploadRounded/>}
+              onClick={props.onImportsInvoke}>
+              {t("button.import")}
             </Button>
           ]
         },

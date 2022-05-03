@@ -1,7 +1,7 @@
 import React, { ComponentClass, FunctionComponent } from "react";
 import { useTranslation } from "react-i18next";
 import { List, ListItem, ListItemIcon, ListItemText, ListSubheader } from "@mui/material";
-import { DomainOutlined, WorkOutlineRounded, } from "@mui/icons-material";
+import { WorkOutlineRounded, } from "@mui/icons-material";
 
 import { User } from "../user/User";
 
@@ -18,7 +18,6 @@ const ProfileInfoList = (props: ProfileInfoListProps) => {
 
   const info = [
     { icon: WorkOutlineRounded, name: 'field.position', info: props.user?.position },
-    { icon: DomainOutlined, name: 'field.department', info: props.user?.department?.name }
   ]
 
   return (

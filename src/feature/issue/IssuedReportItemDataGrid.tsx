@@ -1,11 +1,10 @@
-import { makeStyles } from "@mui/styles";
-import { Box, Theme } from "@mui/material";
+import { Box } from "@mui/material";
 import { getEditorDataGridTheme } from "../core/Core";
 import { EditorDataGridProps, EditorGridToolbar } from "../../components/EditorComponent";
 import { IssuedReportItem } from "./IssuedReport";
 import {
   DataGrid,
-  GridActionsCellItem, GridLoadingOverlay,
+  GridLoadingOverlay,
   GridRowParams,
   GridSelectionModel,
   GridValueGetterParams
@@ -23,15 +22,6 @@ import {
 import useDensity from "../shared/hooks/useDensity";
 import useColumnVisibilityModel from "../shared/hooks/useColumnVisibilityModel";
 import { currencyFormatter } from "../../shared/utils";
-import { EditRounded } from "@mui/icons-material";
-
-const useStyles = makeStyles((theme: Theme) => ({
-  dataGrid: {
-    marginTop: theme.spacing(1),
-    height: '100%',
-    ...getEditorDataGridTheme(theme)
-  }
-}));
 
 type IssuedReportItemDataGridProps = EditorDataGridProps<IssuedReportItem> & {
   items: IssuedReportItem[],
@@ -40,7 +30,6 @@ type IssuedReportItemDataGridProps = EditorDataGridProps<IssuedReportItem> & {
 
 const IssuedReportItemDataGrid = (props: IssuedReportItemDataGridProps) => {
   const { t } = useTranslation();
-  const classes = useStyles();
   const { density, onDensityChanged } = useDensity('issuedEditorDensity');
   const [hasChecked, setHasChecked] = useState(false);
 
@@ -65,18 +54,12 @@ const IssuedReportItemDataGrid = (props: IssuedReportItemDataGridProps) => {
         return currencyFormatter.format(item.quantityIssued * item.unitCost)
       }
     },
-    {
-      field: 'actions',
-      type: 'actions',
-      getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          icon={<EditRounded/>}
-          label={t("button.edit")}
-          onClick={() => props.onItemSelected(params.row as IssuedReportItem)}/>
-      ]
-    }
   ];
   const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('issuedReportItemColumns', columns);
+
+  const onRowSelected = (params: GridRowParams) => {
+    props.onItemSelected(params.row as IssuedReportItem)
+  }
 
   const onCheckedRowChanged = (model: GridSelectionModel) => {
     setHasChecked(Array.from(model).length > 0)
@@ -84,7 +67,7 @@ const IssuedReportItemDataGrid = (props: IssuedReportItemDataGridProps) => {
   }
 
   return (
-    <Box className={classes.dataGrid}>
+    <Box sx={(theme) => ({ marginTop: theme.spacing(1), height: '100%', ...getEditorDataGridTheme(theme)})}>
       <DataGrid
         checkboxSelection
         disableSelectionOnClick
@@ -103,7 +86,8 @@ const IssuedReportItemDataGrid = (props: IssuedReportItemDataGridProps) => {
         rows={props.items}
         density={density}
         columnVisibilityModel={visibleColumns}
-        getRowId={(row) => row.stockNumber}
+        getRowId={(row) => row.issuedReportItemId}
+        onRowDoubleClick={onRowSelected}
         onSelectionModelChange={onCheckedRowChanged}
         onStateChange={(v) => onDensityChanged(v.density.value)}
         onColumnVisibilityModelChange={(m) => onVisibilityChange(m)}/>
