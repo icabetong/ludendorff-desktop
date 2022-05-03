@@ -11,6 +11,9 @@ const createWindow = () => {
     minHeight: height,
     icon: path.join(__dirname, 'assets/icons/png/64x64.png'),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js")
+    }
   });
   window.removeMenu();
 
