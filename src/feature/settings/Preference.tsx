@@ -22,7 +22,10 @@ export const PreferenceContext = React.createContext<PreferencesContext>({
   }
 });
 
-export const PreferenceProvider: React.FC = ({ children }) => {
+type PreferenceProviderProps = {
+  children: React.ReactNode
+}
+export const PreferenceProvider: React.FC<PreferenceProviderProps> = ({ children }) => {
   const [preferences, setPreferences] = useState<Preferences>(defaultPreferences);
 
   useEffect(() => {

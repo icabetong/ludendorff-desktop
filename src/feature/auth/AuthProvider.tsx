@@ -13,9 +13,12 @@ export type AuthState = {
   user?: User
 }
 
+type AuthProviderProps = {
+  children: React.ReactNode
+}
 export const AuthContext = React.createContext<AuthState>({ status: AuthStatus.PENDING })
 
-export const AuthProvider: React.FC = ({ children }) => {
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({ status: AuthStatus.PENDING });
 
   useEffect(() => {
