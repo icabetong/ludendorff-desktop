@@ -11,12 +11,11 @@ export type AuthState = {
   user?: User
 }
 
-export const AuthContext = React.createContext<AuthState>({ status: "pending" })
+export const AuthContext = React.createContext<AuthState>({ status: "pending" });
 
 type AuthProviderProps = {
   children: React.ReactNode
 }
-export const AuthContext = React.createContext<AuthState>({ status: AuthStatus.PENDING })
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>({ status: "pending" });
