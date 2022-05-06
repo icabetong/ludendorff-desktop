@@ -5,11 +5,11 @@ import { getAuth } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
 
 import { Ludendorff } from './feature/core/Core';
-import { PreferenceProvider } from './feature/settings/Preference';
 import * as serviceWorker from "./serviceWorkerRegistration";
 
 import './index.css';
 import './localization';
+import { PreferenceProvider } from "./feature/settings/Preference";
 
 const config = {
   apiKey: process.env.REACT_APP_BACKEND_API_KEY,
