@@ -1,28 +1,32 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-const url = require('url');
-
+const isDev = require('electron-is-dev');
 
 const createWindow = () => {
   const width = 1024, height = 800;
+  const winIcon = path.join(__dirname, '../assets/icon.ico');
+  const darwinIcon = path.join(__dirname, '../assets/icons/64x64.png');
+
   let window = new BrowserWindow({
     width: width,
     height: height,
     minWidth: width,
     minHeight: height,
-    icon: path.join(__dirname, 'assets/icons/png/64x64.png'),
+    icon: process.platform === 'win32' ? winIcon : darwinIcon,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js")
+    }
   });
   window.removeMenu();
 
-  const appUrl = process.env.ELECTRON_START_URL || url.format({ pathname: path.join(__dirname, '../build/index.html'), protocol: 'file:', slashes: true });
-  window.loadURL(appUrl);
-  window.webContents.openDevTools();
+  if (isDev) window.loadURL('http://localhost:3000');
+  else window.loadFile('build/index.html');
+
+  window.on('closed', () => { window = null });
   window.once('ready-to-show', () => {
     window.show();
   });
-
-  window.on('closed', () => { window = null });
 }
 
 app.whenReady().then(() => {

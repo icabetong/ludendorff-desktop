@@ -11,7 +11,7 @@ export type AuthState = {
   user?: User
 }
 
-export const AuthContext = React.createContext<AuthState>({ status: "pending" })
+export const AuthContext = React.createContext<AuthState>({ status: "pending" });
 
 type AuthProviderProps = {
   children: React.ReactNode
