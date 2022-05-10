@@ -12,7 +12,7 @@ import { PreferenceContext } from "../settings/Preference";
 const white = '#ffffff';
 const main50 = '#e3f2fd';
 const main200 = '#90caf9';
-const main400 = '#42a5f5';
+  const main400 = '#42a5f5';
 const main700 = '#1976d2';
 const main800 = '#1565c0';
 const gray50 = '#f9fafb';
@@ -30,7 +30,7 @@ const errorColors = {
   light: '#ff8982'
 }
 
-const baseTheme = (mode: PaletteMode) => createTheme({
+const getTheme = (mode: PaletteMode) => createTheme({
   palette: {
     mode: mode,
     primary: {
@@ -101,6 +101,13 @@ const baseTheme = (mode: PaletteMode) => createTheme({
         }
       }
     },
+    MuiDialogActions: {
+      styleOverrides: {
+        root: {
+          backgroundColor: mode === 'dark' ? gray600 : gray100
+        }
+      }
+    },
     MuiTextField: {
       defaultProps: {
         fullWidth: true,
@@ -122,26 +129,6 @@ const baseTheme = (mode: PaletteMode) => createTheme({
     },
   }
 })
-
-export const Ludendorff = () => {
-  const userPreferences = useContext(PreferenceContext);
-
-  return <>
-    {/* https://stackoverflow.com/questions/60909608/material-ui-theme-does-not-change-back */}
-    <ThemeProvider theme={baseTheme(userPreferences.preferences.theme === 'dark' ? 'dark' : 'light')}>
-      <CssBaseline/>
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<RootComponent/>}/>
-            <Route path="/login" element={<AuthComponent/>}/>
-            <Route path="*" element={<ErrorNotFoundState/>}/>
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
-  </>;
-}
 
 export const getDataGridTheme = (theme: Theme) => {
   return {
@@ -230,4 +217,23 @@ export const getEditorDataGridTheme = (theme: Theme) => {
       border: 'none'
     }
   }
+}
+
+export const Ludendorff = () => {
+  const userPreferences = useContext(PreferenceContext);
+
+  return (
+    <ThemeProvider theme={getTheme(userPreferences.preferences.theme === 'dark' ? 'dark' : 'light')}>
+      <CssBaseline/>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<RootComponent/>}/>
+            <Route path="/login" element={<AuthComponent/>}/>
+            <Route path="*" element={<ErrorNotFoundState/>}/>
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
 }
