@@ -3,13 +3,11 @@ const path = require('path');
 const isDev = require('electron-is-dev');
 
 const createWindow = () => {
-  const width = 1024, height = 800;
+  const width = 800, height = 600;
   const winIcon = path.join(__dirname, '../assets/icon.ico');
   const darwinIcon = path.join(__dirname, '../assets/icons/64x64.png');
 
   let window = new BrowserWindow({
-    width: width,
-    height: height,
     minWidth: width,
     minHeight: height,
     icon: process.platform === 'win32' ? winIcon : darwinIcon,
