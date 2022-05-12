@@ -1,6 +1,9 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
+const { setupTitlebar, attachTitlebarToWindow } = require('custom-electron-titlebar/main');
+
+setupTitlebar();
 
 const createWindow = () => {
   const width = 800, height = 600;
@@ -13,10 +16,13 @@ const createWindow = () => {
     icon: process.platform === 'win32' ? winIcon : darwinIcon,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
-      preload: path.join(__dirname, "preload.js")
+      nodeIntegration: true,
+      preload: path.join(__dirname, "preload.js"),
+      enableRemoteModule: true,
     }
   });
   window.removeMenu();
+  
 
   if (isDev) window.loadURL('http://localhost:3000');
   else window.loadFile('build/index.html');
@@ -25,6 +31,7 @@ const createWindow = () => {
   window.once('ready-to-show', () => {
     window.show();
   });
+  attachTitlebarToWindow(window);
 }
 
 app.whenReady().then(() => {
