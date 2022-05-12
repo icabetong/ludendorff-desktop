@@ -20,11 +20,12 @@ import AssetImportEditor from "./AssetImportEditor";
 import { Category, CategoryCore, minimize } from "../category/Category";
 import CategoryPicker from "../category/CategoryPicker";
 import useQueryLimit from "../shared/hooks/useQueryLimit";
-import { EditorAppBar, EditorContent, EditorRoot, Transition } from "../../components/EditorComponent";
-import { useDialog } from "../../components/DialogProvider";
+import { EditorAppBar, EditorContent, EditorRoot, SlideUpTransition, useDialog } from "../../components";
 import { firestore } from "../../index";
 import { assetCollection, categoryCollection, categoryName } from "../../shared/const";
 import { isDev } from "../../shared/utils";
+import AssetImportDuplicate from "./AssetImportDuplicate";
+import { GroupedArray } from "../shared/types/GroupedArray";
 
 type AssetImportScreenProps = {
   isOpen: boolean,
@@ -39,6 +40,7 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
   const [name, setName] = useState<String>("");
   const [isWorking, setWorking] = useState(false);
   const [assets, setAssets] = useState<AssetImport[]>([]);
+  const [duplicates, setDuplicates] = useState<AssetImport[]>([]);
   const [importedAssets, setImportedAssets] = useState<AssetImport[]>([]);
   const [asset, setAsset] = useState<AssetImport | undefined>(undefined);
   const [checked, setChecked] = useState<string[]>([]);
@@ -180,6 +182,17 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
           assets.push(asset);
         }
       }
+
+      let stockNumbers = assets.map((asset) => asset.stockNumber);
+      let duplicates = stockNumbers.filter((s, index) => stockNumbers.indexOf(s) !== index);
+      let references = new Set(duplicates);
+      stockNumbers = Array.from(references);
+      let duplicateAssets = assets.filter((item) => stockNumbers.includes(item.stockNumber));
+      if (duplicateAssets.length > 0) {
+        assets = assets.filter((item) => !duplicateAssets.includes(item));
+        setDuplicates(duplicateAssets);
+      }
+
       setAssets(assets);
     } else enqueueSnackbar(t("feedback.workbook_empty_worksheet"));
   }
@@ -209,10 +222,17 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
   }
 
   const onCheckedRowsChanged = (ids: string[]) => setChecked(ids);
+  const onDuplicatesCleared = (assets: GroupedArray<AssetImport>) => {
+    let flatted = Object.values(assets).flat();
+    setAssets(prevState => {
+      return prevState.concat(flatted);
+    });
+    setDuplicates([]);
+  }
 
   return (
     <>
-      <Dialog open={props.isOpen} TransitionComponent={Transition} fullScreen>
+      <Dialog open={props.isOpen} TransitionComponent={SlideUpTransition} fullScreen>
         <EditorRoot>
           <EditorAppBar
             title={t("dialog.import_assets")}
@@ -264,6 +284,10 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
         asset={asset}
         onSubmit={onAssetEditorCommit}
         onDismiss={onAssetEditorDismiss}/>
+      <AssetImportDuplicate
+        isOpen={duplicates.length > 0}
+        assets={duplicates}
+        onContinue={onDuplicatesCleared}/>
       <CategoryPicker
         categories={items}
         isOpen={isPickerOpen}

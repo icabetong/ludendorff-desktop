@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InstantSearch } from "react-instantsearch-core";
 import {
   Button,
   Dialog,
@@ -15,11 +16,9 @@ import AssetList from "./AssetList";
 
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import { usePermissions } from "../auth/AuthProvider";
-import { PaginationController, PaginationControllerProps } from "../../components/PaginationController";
+import { PaginationController, PaginationControllerProps, DialogSearchTitle } from "../../components";
 import useQueryLimit from "../shared/hooks/useQueryLimit";
-import SearchDialogTitle from "../../components/SearchDialogTitle";
-import { InstantSearch } from "react-instantsearch-dom";
-import { Provider } from "../../components/InstantSearch";
+import Client from "../search/Client";
 import AssetSearchList from "./AssetSearchList";
 import { AssetEmptyState } from "./AssetEmptyState";
 
@@ -45,18 +44,18 @@ const AssetPicker = (props: AssetPickerProps) => {
   }
 
   return (
-    <InstantSearch searchClient={Provider} indexName="assets">
+    <InstantSearch searchClient={Client} indexName="assets">
       <Dialog
         fullWidth
         fullScreen={smBreakpoint}
         maxWidth="xs"
         open={props.isOpen}
         PaperProps={{ sx: { minHeight: '60vh' }}}>
-        <SearchDialogTitle
+        <DialogSearchTitle
           hasSearchFocus={searchMode}
           onSearchFocusChanged={setSearchMode}>
           {t("dialog.select_asset")}
-        </SearchDialogTitle>
+        </DialogSearchTitle>
         <DialogContent
           dividers={true}
           sx={{

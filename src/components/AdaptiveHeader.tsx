@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { AddRounded, MenuRounded, MoreVert } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
-import { SearchBox, SearchBoxInputBase } from "./InstantSearch";
+import SearchBoxInputBase from "../feature/search/SearchBox";
 
 type AdaptiveHeaderProps = CoreHeaderProps & MediumScreenHeaderProps & LargeScreenHeaderProps;
 type CoreHeaderProps = {
@@ -27,64 +27,36 @@ type MediumScreenHeaderProps = CoreHeaderProps & {
 }
 type LargeScreenHeaderProps = CoreHeaderProps
 
-const AdaptiveHeader = (props: AdaptiveHeaderProps) => {
-  const { title, menuItems, actionText, onActionEvent, onDrawerTriggered, onSearchFocusChanged } = props;
-
-  return (
-    <>
-      <Box sx={{ display: { xs: 'none', lg: 'block' }}}>
-        <LargeScreenHeader
-          title={title}
-          actionText={actionText}
-          onActionEvent={onActionEvent}
-          onSearchFocusChanged={onSearchFocusChanged}/>
-      </Box>
-      <Box sx={{ display: { xs: 'block', lg: 'none' }}}>
-        <MediumScreenHeader
-          title={title}
-          menuItems={menuItems}
-          actionText={actionText}
-          onActionEvent={onActionEvent}
-          onDrawerTriggered={onDrawerTriggered}
-          onSearchFocusChanged={onSearchFocusChanged}/>
-      </Box>
-    </>
-  )
-}
-
-
-const MediumScreenHeader = (props: MediumScreenHeaderProps) => {
+export const AdaptiveHeader = (props: AdaptiveHeaderProps) => {
   const { t } = useTranslation();
+  const { title, menuItems, actionText, onActionEvent, onDrawerTriggered, onSearchFocusChanged } = props;
   const theme = useTheme();
   const smBreakpoint = useMediaQuery(theme.breakpoints.up('sm'));
   const mdBreakpoint = useMediaQuery(theme.breakpoints.up('md'));
-  const { title, actionText, onActionEvent, menuItems, onDrawerTriggered, onSearchFocusChanged } = props;
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const isOpen = Boolean(anchor);
   const anchorProperties = { vertical: 'top', horizontal: 'right' } as const
 
   return (
     <AppBar
-      position="static"
-      color="transparent"
       elevation={0}
-      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+      color="transparent"
+      position="sticky"
+      sx={{
+        paddingY: { lg: 2 }
+      }}>
       <Toolbar>
         <IconButton
+          color="inherit"
+          aria-label="open drawer"
           edge="start"
           onClick={onDrawerTriggered}
-          aria-label={t("button.show_drawer")}
-          size="large">
+          sx={{ mr: 2, display: { lg: 'none' } }}>
           <MenuRounded/>
         </IconButton>
-        <Box sx={{ mx: 1, display: { xs: 'none', lg: 'block' }, flexGrow: 1 }}>
-          <Typography variant="h5" component="div">
-            {title}
-          </Typography>
-        </Box>
-        <Box sx={{ mx: 1, display: { xs: 'block', lg: 'none' }, flexGrow: 1 }}>
+        <Box sx={{ mx: 1, flexGrow: 1 }}>
           <Typography
-            variant="h6"
+            variant={mdBreakpoint ? "h4" : "h6"}
             noWrap
             component="div"
             sx={{ display: 'block' }}>
@@ -119,7 +91,8 @@ const MediumScreenHeader = (props: MediumScreenHeaderProps) => {
               transformOrigin={anchorProperties}
               open={isOpen}
               onClose={() => setAnchor(null)}
-              onMouseLeave={() => setAnchor(null)}>
+              onMouseLeave={() => setAnchor(null)}
+              PaperProps={{ sx: { width: 180 }}}>
               {props.menuItems &&
                 props.menuItems.map((menuItem) => {
                   return menuItem
@@ -132,41 +105,3 @@ const MediumScreenHeader = (props: MediumScreenHeaderProps) => {
     </AppBar>
   )
 }
-
-const LargeScreenHeader = (props: LargeScreenHeaderProps) => {
-  const { title, actionText, onActionEvent, onSearchFocusChanged } = props;
-
-  return (
-    <Box
-      sx={{
-        w: "100%",
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        mx: 3,
-        pt: 4
-      }}>
-      <Box flexGrow={3}>
-        <Typography variant="h4">{title}</Typography>
-      </Box>
-      {onSearchFocusChanged &&
-        <Box sx={{ mx: 2 }}>
-          <SearchBox onFocusChanged={props.onSearchFocusChanged}/>
-        </Box>
-      }
-      {actionText && onActionEvent &&
-        <Box>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddRounded/>}
-            onClick={onActionEvent}>
-            {actionText}
-          </Button>
-        </Box>
-      }
-    </Box>
-  )
-}
-
-export default AdaptiveHeader;

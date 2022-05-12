@@ -20,8 +20,7 @@ import { Asset } from "../asset/Asset";
 import AssetPicker from "../asset/AssetPicker";
 import { firestore } from "../../index";
 import { assetCollection, assetStockNumber } from "../../shared/const";
-
-import CurrencyFormatCustom from "../../components/CurrencyFormatCustom";
+import { CurrencyFormatCustom } from "../../components";
 
 export type FormValues = {
   unitValue: number,
@@ -104,7 +103,7 @@ export const InventoryReportItemEditor = (props: InventoryReportItemEditorProps)
         open={props.isOpen}
         onClose={onDismiss}>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>{t("dialog.details_inventory_item")}</DialogTitle>
+          <DialogTitle>{t(props.isCreate ? "dialog.inventory_item_create" : "dialog.inventory_item_update")}</DialogTitle>
           <DialogContent>
             <Container disableGutters>
               <TextField
@@ -188,6 +187,7 @@ export const InventoryReportItemEditor = (props: InventoryReportItemEditorProps)
               onClick={onDismiss}>{t("button.cancel")}</Button>
             <Button
               color="primary"
+              variant="contained"
               type="submit">{t("button.save")}</Button>
           </DialogActions>
         </form>

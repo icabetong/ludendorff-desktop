@@ -15,9 +15,9 @@ import {
 import DateAdapter from "@mui/lab/AdapterDateFns";
 import { DatePicker, LocalizationProvider } from "@mui/lab";
 import { Timestamp } from "firebase/firestore";
-import { newId } from "../../shared/utils";
 import { StockCard, StockCardEntry } from "./StockCard";
 import { Balances, Entry } from "../shared/types/Balances";
+import { newId } from "../../shared/utils";
 
 export type FormValues = {
   reference?: string,
@@ -107,7 +107,7 @@ export const StockCardEntryEditor = (props: StockCardEntryEditorProps) => {
       fullWidth={true}
       maxWidth="xs">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>{t("dialog.details_stock_card_entry")}</DialogTitle>
+        <DialogTitle>{t(props.isCreate ? "dialog.stock_card_entry_create" : "dialog.stock_card_entry_update")}</DialogTitle>
         <DialogContent>
           <Container disableGutters>
             <LocalizationProvider dateAdapter={DateAdapter}>
@@ -225,6 +225,7 @@ export const StockCardEntryEditor = (props: StockCardEntryEditorProps) => {
             {t("button.cancel")}
           </Button>
           <Button
+            variant="contained"
             color="primary"
             type="submit">
             {t("button.save")}

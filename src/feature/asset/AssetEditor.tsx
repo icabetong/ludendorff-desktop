@@ -32,7 +32,7 @@ import { isDev } from "../../shared/utils";
 import { usePagination } from "use-pagination-firestore";
 import { ArrowDropDownOutlined } from "@mui/icons-material";
 import useQueryLimit from "../shared/hooks/useQueryLimit";
-import CurrencyFormatCustom from "../../components/CurrencyFormatCustom";
+import { CurrencyFormatCustom } from "../../components";
 
 type AssetEditorProps = {
   isOpen: boolean,
@@ -192,7 +192,7 @@ const AssetEditor = (props: AssetEditorProps) => {
         maxWidth={smBreakpoint ? "xs" : "md"}
         open={props.isOpen}>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>{t("dialog.details_asset")}</DialogTitle>
+          <DialogTitle>{t(props.isCreate ? "dialog.asset_create" : "dialog.asset_update")}</DialogTitle>
           <DialogContent dividers={true}>
             <Container sx={{ py: 1 }}>
               <Grid
@@ -329,6 +329,7 @@ const AssetEditor = (props: AssetEditorProps) => {
             </Button>
             <LoadingButton
               loading={isWriting}
+              variant="contained"
               color="primary"
               type="submit">
               {t("button.save")}

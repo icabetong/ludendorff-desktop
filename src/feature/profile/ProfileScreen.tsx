@@ -20,7 +20,7 @@ import ChangePasswordPrompt from "./actions/ChangePassword";
 import RequestResetPrompt from "./actions/RequestReset";
 import { useAuthState } from "../auth/AuthProvider";
 import { ReactComponent as Avatar } from "../../shared/user.svg"
-import AdaptiveHeader from "../../components/AdaptiveHeader";
+import { AdaptiveHeader } from "../../components";
 import { auth } from "../../index";
 
 type ProfileScreenProps = {
@@ -67,7 +67,7 @@ const ProfileScreen = (props: ProfileScreenProps) => {
   ];
 
   return (
-    <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <AdaptiveHeader
         title={t("navigation.profile")}
         menuItems={[

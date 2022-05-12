@@ -101,7 +101,7 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
         maxWidth="xs"
         open={props.isOpen}>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>{t("dialog.details_issued_item")}</DialogTitle>
+          <DialogTitle>{t(props.isCreate ? "dialog.issued_item_create" : "dialog.issued_item_update")}</DialogTitle>
           <DialogContent>
             <Container disableGutters>
               <TextField
@@ -179,6 +179,7 @@ export const IssuedReportItemEditor = (props: IssuedReportItemEditorProps) => {
               {t("button.cancel")}
             </Button>
             <Button
+              variant="contained"
               color="primary"
               type="submit">
               {t("button.save")}

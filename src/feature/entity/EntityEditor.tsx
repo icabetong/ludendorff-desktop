@@ -31,7 +31,7 @@ const EntityEditor = (props: EntityEditorProps) => {
   return (
     <Dialog open={props.isOpen} maxWidth="sm">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>{t("dialog.details_entity")}</DialogTitle>
+        <DialogTitle>{t("dialog.entity_update")}</DialogTitle>
         <DialogContent>
           <Container disableGutters>
             <Controller
@@ -68,7 +68,7 @@ const EntityEditor = (props: EntityEditorProps) => {
           <Button onClick={props.onDismiss}>
             {t("button.cancel")}
           </Button>
-          <LoadingButton type="submit" loading={isWriting}>
+          <LoadingButton variant="contained" type="submit" loading={isWriting}>
             {t("button.save")}
           </LoadingButton>
         </DialogActions>

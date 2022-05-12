@@ -21,7 +21,7 @@ import { LoadingButton } from "@mui/lab";
 import { LockOutlined, MailOutlineRounded } from "@mui/icons-material";
 import { ReactComponent as Logo } from "../../shared/icon.svg";
 import PasswordReset from "./PasswordReset";
-import SVGFeedbackDialog from "../../components/SVGFeedbackDialog";
+import { DialogSVGFeedback } from "../../components";
 import { ReactComponent as EmailSent } from "../../shared/message_sent.svg";
 import { isDev } from "../../shared/utils";
 
@@ -30,7 +30,7 @@ type FormData = {
   password: string
 }
 
-const AuthComponent = () => {
+const Authentication = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { handleSubmit, formState: { errors }, control, watch } = useForm<FormData>({
@@ -179,7 +179,7 @@ const AuthComponent = () => {
         working={working}
         onSubmit={onResetPassword}
         onDismiss={onDismissRequestPassword}/>
-      <SVGFeedbackDialog
+      <DialogSVGFeedback
         isOpen={confirm}
         svgImage={EmailSent}
         title={t("dialog.reset_email_sent")}
@@ -189,4 +189,4 @@ const AuthComponent = () => {
   );
 }
 
-export default AuthComponent;
+export default Authentication;

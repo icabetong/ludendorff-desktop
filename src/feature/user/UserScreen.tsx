@@ -1,7 +1,6 @@
 import { useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Fab, LinearProgress, Theme } from "@mui/material";
-import makeStyles from '@mui/styles/makeStyles';
 import { GridRowParams } from "@mui/x-data-grid";
 import { useSnackbar } from "notistack";
 import { AddRounded } from "@mui/icons-material";
@@ -11,35 +10,25 @@ import { usePermissions } from "../auth/AuthProvider";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import { User, UserRepository } from "./User";
 import UserList from "./UserList";
-import { ActionType, initialState, reducer } from "./UserEditorReducer";
+import { initialState, reducer } from "./UserEditorReducer";
 import { lastName, userCollection } from "../../shared/const";
 import UserEditor from "./UserEditor";
 import { firestore } from "../../index";
 import { usePagination } from "use-pagination-firestore";
 import { InstantSearch } from "react-instantsearch-dom";
-import { Provider } from "../../components/InstantSearch";
+import Client from "../search/Client";
 import { ScreenProps } from "../shared/types/ScreenProps";
-import AdaptiveHeader from "../../components/AdaptiveHeader";
+import { AdaptiveHeader, useDialog } from "../../components";
 import useQueryLimit from "../shared/hooks/useQueryLimit";
 import { UserEmptyState } from "./UserEmptyState";
 import UserDataGrid from "./UserDataGrid";
 import useSort from "../shared/hooks/useSort";
 import { OrderByDirection } from "@firebase/firestore-types";
-import { useDialog } from "../../components/DialogProvider";
 import { isDev } from "../../shared/utils";
-
-const useStyles = makeStyles((theme: Theme) => ({
-  wrapper: {
-    height: '90%',
-    padding: '1.4em',
-    ...getDataGridTheme(theme)
-  }
-}));
 
 type UserScreenProps = ScreenProps
 const UserScreen = (props: UserScreenProps) => {
   const { t } = useTranslation();
-  const classes = useStyles();
   const { enqueueSnackbar } = useSnackbar();
   const show = useDialog();
   const { canRead, canManageUsers } = usePermissions();
@@ -106,20 +95,20 @@ const UserScreen = (props: UserScreenProps) => {
     onUserSelected(params.row as User)
   }
 
-  const onUserEditorView = () => dispatch({ type: ActionType.CREATE })
-  const onUserEditorDismiss = () => dispatch({ type: ActionType.DISMISS })
+  const onUserEditorView = () => dispatch({ type: "create" })
+  const onUserEditorDismiss = () => dispatch({ type: "dismiss" })
 
   const onUserSelected = (user: User) => {
     dispatch({
-      type: ActionType.UPDATE,
+      type: "update",
       payload: user
     })
   }
 
   return (
-    <Box sx={{width: '100%'}}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <InstantSearch
-        searchClient={Provider}
+        searchClient={Client}
         indexName="users">
         <AdaptiveHeader
           title={t("navigation.users")}
@@ -129,7 +118,7 @@ const UserScreen = (props: UserScreenProps) => {
           onSearchFocusChanged={setSearchMode}/>
         {canRead || canManageUsers
           ? <>
-            <Box className={classes.wrapper} sx={{ display: { xs: "none", sm: "block" }}}>
+            <Box sx={(theme) => ({ flex: 1, padding: 3, display: { xs: "none", sm: "block" }, ...getDataGridTheme(theme)})}>
               <UserDataGrid
                 items={items}
                 size={limit}
@@ -158,7 +147,7 @@ const UserScreen = (props: UserScreenProps) => {
               <Fab
                 color="primary"
                 aria-label={t("button.add")}
-                onClick={() => dispatch({ type: ActionType.CREATE })}>
+                onClick={() => dispatch({ type: "create" })}>
                 <AddRounded/>
               </Fab>
             </Box>
