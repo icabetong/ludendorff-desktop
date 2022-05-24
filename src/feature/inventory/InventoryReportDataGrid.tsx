@@ -20,11 +20,22 @@ type InventoryReportDataGridProps = HitsProvided<InventoryReport> & DataGridProp
 const InventoryReportDataGridCore = (props: InventoryReportDataGridProps) => {
   const { t } = useTranslation();
   const columns = [
-    { field: fundCluster, headerName: t("field.fund_cluster"), flex: 1 },
-    { field: yearMonth, headerName: t("field.year_month"), flex: 1 },
+    {
+      field: fundCluster,
+      headerName: t("field.fund_cluster"),
+      sortable: false,
+      flex: 1
+    },
+    {
+      field: yearMonth,
+      headerName: t("field.year_month"),
+      sortable: false,
+      flex: 1
+    },
     {
       field: accountabilityDate,
       headerName: t("field.accountability_date"),
+      sortable: false,
       flex: 1,
       valueGetter: (params: GridValueGetterParams) => {
         const formatted = formatDate(params.row.accountabilityDate);
@@ -51,7 +62,7 @@ const InventoryReportDataGridCore = (props: InventoryReportDataGridProps) => {
   const { density, onDensityChanged } = useDensity('inventoryDensity');
   const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('inventoryColumns', columns);
 
-  const hideFooter = props.isSearching || (props.canForward && props.items.length > 0 && props.items.length <= props.size)
+  const hideFooter = props.isSearching
   return (
     <DataGrid
       hideFooter={hideFooter}
@@ -60,16 +71,14 @@ const InventoryReportDataGridCore = (props: InventoryReportDataGridProps) => {
         LoadingOverlay: GridLinearProgress,
         NoRowsOverlay: InventoryReportDataGridEmptyState,
         Toolbar: GridToolbar,
-        Pagination: props.canForward && props.items.length > 0 && props.items.length <= props.size ? DataGridPaginationController : null,
+        Pagination: hideFooter ? null : DataGridPaginationController,
       }}
       componentsProps={{
         pagination: {
-          size: props.size,
           canBack: props.canBack,
           canForward: props.canForward,
           onBackward: props.onBackward,
           onForward: props.onForward,
-          onPageSizeChanged: props.onPageSizeChanged,
         }
       }}
       sortingMode="server"

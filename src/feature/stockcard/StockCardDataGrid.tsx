@@ -20,16 +20,35 @@ type StockCardDataGridProps = HitsProvided<StockCard> & DataGridProps<StockCard>
 const StockCardDataGridCore = (props: StockCardDataGridProps) => {
   const { t } = useTranslation();
   const columns = [
-    { field: entityName, headerName: t("field.entity_name"), flex: 1 },
-    { field: assetStockNumber, headerName: t("field.stock_number"), flex: 1 },
-    { field: assetDescription, headerName: t("field.asset_description"), flex: 2 },
+    {
+      field: entityName,
+      headerName: t("field.entity_name"),
+      sortable: false,
+      flex: 1 },
+    {
+      field: assetStockNumber,
+      headerName: t("field.stock_number"),
+      sortable: false,
+      flex: 1 },
+    {
+      field: assetDescription,
+      headerName: t("field.asset_description"),
+      sortable: false,
+      flex: 2
+    },
     {
       field: unitPrice,
       headerName: t("field.unit_price"),
+      sortable: false,
       flex: 0.5,
       valueGetter: (params: GridValueGetterParams) => currencyFormatter.format(params.value)
     },
-    { field: assetUnitOfMeasure, headerName: t("field.unit_of_measure"), flex: 0.5 },
+    {
+      field: assetUnitOfMeasure,
+      headerName: t("field.unit_of_measure"),
+      sortable: false,
+      flex: 0.5
+    },
     {
       field: "actions",
       type: "actions",
@@ -50,7 +69,7 @@ const StockCardDataGridCore = (props: StockCardDataGridProps) => {
   const { density, onDensityChanged } = useDensity('stockCardDensity');
   const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('stockCardColumns', columns);
 
-  const hideFooter = props.isSearching || (props.canForward && props.items.length > 0 && props.items.length <= props.size)
+  const hideFooter = props.isSearching
   return (
     <DataGrid
       hideFooter={hideFooter}
@@ -59,16 +78,14 @@ const StockCardDataGridCore = (props: StockCardDataGridProps) => {
         LoadingOverlay: GridLinearProgress,
         NoRowsOverlay: StockCardDataGridEmptyState,
         Toolbar: GridToolbar,
-        Pagination: props.canForward && props.items.length > 0 && props.items.length <= props.size ? DataGridPaginationController : null,
+        Pagination: hideFooter ? null : DataGridPaginationController
       }}
       componentsProps={{
         pagination: {
-          size: props.size,
           canBack: props.canBack,
           canForward: props.canForward,
           onBackward: props.onBackward,
-          onForward: props.onForward,
-          onPageSizeChanged: props.onPageSizeChanged
+          onForward: props.onForward
         }
       }}
       sortingMode="server"

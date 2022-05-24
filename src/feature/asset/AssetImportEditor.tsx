@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import {
+  Alert,
   Button,
   Container,
   Dialog,
@@ -12,19 +13,19 @@ import {
   InputAdornment,
   IconButton,
   MenuItem,
+  Snackbar,
   TextField,
   useTheme,
   useMediaQuery
 } from "@mui/material";
 import { useSnackbar } from "notistack";
 import { ArrowDropDownOutlined } from "@mui/icons-material";
-import { query, collection, orderBy, doc, getDoc } from "firebase/firestore";
-import { usePagination } from "use-pagination-firestore";
+import { query, collection, orderBy, doc, limit, getDoc } from "firebase/firestore";
 import { AssetImport } from "./AssetImport";
 import { Category, CategoryCore, minimize } from "../category/Category";
 import { firestore } from "../../index";
-import { categoryCollection, categoryName } from "../../shared/const";
-import useQueryLimit from "../shared/hooks/useQueryLimit";
+import { categoryCollection, categoryId } from "../../shared/const";
+import usePagination from "../shared/hooks/usePagination";
 import CategoryPicker from "../category/CategoryPicker";
 import { isDev } from "../../shared/utils";
 
@@ -35,6 +36,7 @@ type AssetImportEditorProps = {
   onDismiss: () => void,
 }
 type FormValues = {
+  id: string,
   stockNumber: string,
   description: string,
   subcategory: string,
@@ -49,7 +51,6 @@ const AssetImportEditor = (props: AssetImportEditorProps) => {
   const smBreakpoint = useMediaQuery(theme.breakpoints.down('sm'));
   const { enqueueSnackbar } = useSnackbar();
   const { handleSubmit, formState: { errors }, control, reset, setValue } = useForm<FormValues>();
-  const { limit } = useQueryLimit('categoryQueryLimit');
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [category, setCategory] = useState<CategoryCore | undefined>(props.asset?.category);
   const [subcategories, setSubcategories] = useState<string[]>([]);
@@ -76,7 +77,6 @@ const AssetImportEditor = (props: AssetImportEditorProps) => {
 
   useEffect(() => {
     if (props.isOpen) {
-      console.log(props.asset?.subcategory);
       reset({
         stockNumber: props.asset ? props.asset.stockNumber : "",
         description: props.asset?.description ? props.asset.description : "",
@@ -102,10 +102,8 @@ const AssetImportEditor = (props: AssetImportEditorProps) => {
     onPickerDismiss();
   }
 
-  const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<Category>(
-    query(collection(firestore, categoryCollection), orderBy(categoryName, "asc")), {
-      limit: limit
-    }
+  const { items, isLoading, error, canBack, canForward, onBackward, onForward } = usePagination<Category>(
+    query(collection(firestore, categoryCollection), orderBy(categoryId, "asc"), limit(25)), categoryId, 25
   );
 
   const onSubmit = (data: FormValues) => {
@@ -129,7 +127,7 @@ const AssetImportEditor = (props: AssetImportEditorProps) => {
     <>
       <Dialog open={props.isOpen} maxWidth={smBreakpoint ? "xs" : "md"} fullWidth>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>{t("dialog.details_asset")}</DialogTitle>
+          <DialogTitle>{t("dialog.asset_update")}</DialogTitle>
           <DialogContent dividers={true}>
             <Container sx={{ py: 1}}>
               <Grid
@@ -142,6 +140,12 @@ const AssetImportEditor = (props: AssetImportEditorProps) => {
                   item
                   xs={6}
                   sx={{ maxWidth: '100%', pt: 0, pl: 0 }}>
+                  <Controller
+                    control={control}
+                    name="id"
+                    render={({ field: { ref, ...inputProps }}) => (
+                      <input hidden ref={ref} {...inputProps}/>
+                    )}/>
                   <Controller
                     control={control}
                     name="stockNumber"
@@ -266,12 +270,17 @@ const AssetImportEditor = (props: AssetImportEditorProps) => {
         categories={items}
         isOpen={isPickerOpen}
         isLoading={isLoading}
-        canBack={isStart}
-        canForward={isEnd}
-        onBackward={getPrev}
-        onForward={getNext}
+        canBack={canBack}
+        canForward={canForward}
+        onBackward={onBackward}
+        onForward={onForward}
         onDismiss={onPickerDismiss}
         onSelectItem={onCategorySelected}/>
+      <Snackbar open={Boolean(error)}>
+        <Alert severity="error">
+          {error?.message}
+        </Alert>
+      </Snackbar>
     </>
   )
 }

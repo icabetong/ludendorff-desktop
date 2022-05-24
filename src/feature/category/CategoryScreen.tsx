@@ -1,14 +1,15 @@
 import { useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Box,
   Dialog,
   DialogContent,
-  LinearProgress
+  LinearProgress,
+  Snackbar,
 } from "@mui/material";
 import { InstantSearch } from "react-instantsearch-core";
-import { collection, orderBy, query } from "firebase/firestore";
-import { usePagination } from "use-pagination-firestore";
+import { collection, orderBy, query, limit } from "firebase/firestore";
 import { Category } from "./Category";
 import CategoryEditor from "./CategoryEditor";
 import { initialState, reducer } from "./CategoryEditorReducer";
@@ -17,10 +18,10 @@ import CategorySearchList from "./CategorySearchList";
 import { usePermissions } from "../auth/AuthProvider";
 import Client from "../search/Client";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
-import { categoryCollection, categoryName } from "../../shared/const";
+import { categoryCollection, categoryId } from "../../shared/const";
 import { firestore } from "../../index";
 import { DialogToolbar, PaginationController, SlideUpTransition } from "../../components";
-import useQueryLimit from "../shared/hooks/useQueryLimit";
+import usePagination from "../shared/hooks/usePagination";
 
 type CategoryScreenProps = {
   isOpen: boolean,
@@ -32,11 +33,10 @@ const CategoryScreen = (props: CategoryScreenProps) => {
   const [search, setSearch] = useState(false);
   const [state, dispatch] = useReducer(reducer, initialState);
   const { canRead, canWrite } = usePermissions();
-  const { limit } = useQueryLimit('categoryQueryLimit');
 
-  const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<Category>(
-    query(collection(firestore, categoryCollection), orderBy(categoryName, "asc")),
-    { limit: limit }
+  const { items, isLoading, error, canBack, canForward, onBackward, onForward } = usePagination<Category>(
+    query(collection(firestore, categoryCollection), orderBy(categoryId, "asc"), limit(25)),
+    categoryId, 25
   );
 
   const onSearchInvoked = () => setSearch(!search);
@@ -70,12 +70,12 @@ const CategoryScreen = (props: CategoryScreenProps) => {
                     ? <CategorySearchList onItemSelect={onEditorUpdate}/>
                     : <>
                       <CategoryList categories={items} onItemSelect={onEditorUpdate}/>
-                      { isEnd && items.length > 0 && items.length === limit &&
+                      { canForward && items.length > 0 && items.length === 25 &&
                         <PaginationController
-                          canBack={isStart}
-                          canForward={isEnd}
-                          onBackward={getPrev}
-                          onForward={getNext}/>
+                          canBack={canBack}
+                          canForward={canForward}
+                          onBackward={onBackward}
+                          onForward={onForward}/>
                       }
                       </>
                   }
@@ -90,6 +90,11 @@ const CategoryScreen = (props: CategoryScreenProps) => {
         isCreate={state.isCreate}
         category={state.category}
         onDismiss={onEditorDismiss}/>
+      <Snackbar open={Boolean(error)}>
+        <Alert severity="error">
+          {error?.message}
+        </Alert>
+      </Snackbar>
     </InstantSearch>
   )
 }

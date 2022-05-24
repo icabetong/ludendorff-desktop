@@ -2,27 +2,29 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InventoryReport } from "./InventoryReport";
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   LinearProgress,
+  Snackbar,
   useMediaQuery,
   useTheme
 } from "@mui/material";
-import { usePagination } from "use-pagination-firestore";
-import { collection, orderBy, query } from "firebase/firestore";
+import { InstantSearch } from "react-instantsearch-dom";
+import { collection, orderBy, query, limit } from "firebase/firestore";
 import { firestore } from "../../index";
-import { fundCluster, inventoryCollection } from "../../shared/const";
+import { inventoryCollection, inventoryReportId } from "../../shared/const";
 import { usePermissions } from "../auth/AuthProvider";
-import useQueryLimit from "../shared/hooks/useQueryLimit";
 import { PaginationController, DialogSearchTitle } from "../../components";
 import { InventoryReportEmptyState } from "./InventoryReportEmptyState";
+import usePagination from "../shared/hooks/usePagination";
 import { ErrorNoPermissionState } from "../state/ErrorStates";
 import InventoryReportPickerList from "./InventoryReportPickerList";
 import InventoryReportViewer from "./InventoryReportViewer";
 import InventoryReportSearchList from "./InventoryReportSearchList";
-import { InstantSearch } from "react-instantsearch-dom";
+
 import Client from "../search/Client";
 
 type InventoryReportPickerProps = {
@@ -37,12 +39,11 @@ const InventoryReportPicker = (props: InventoryReportPickerProps) => {
   const smBreakpoint = useMediaQuery(theme.breakpoints.down('sm'));
   const { canRead } = usePermissions();
   const [searchMode, setSearchMode] = useState(false);
-  const { limit } = useQueryLimit('inventoryQueryLimit');
   const [report, setReport] = useState<InventoryReport | null>(null);
 
-  const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<InventoryReport>(
-    query(collection(firestore, inventoryCollection),
-      orderBy(fundCluster, "asc")), { limit: limit }
+  const { items, isLoading, error, canBack, canForward, onBackward, onForward } = usePagination<InventoryReport>(
+    query(collection(firestore, inventoryCollection), orderBy(inventoryReportId, "asc"), limit(25)),
+    inventoryReportId, 25
   );
 
   return (
@@ -78,12 +79,12 @@ const InventoryReportPicker = (props: InventoryReportPickerProps) => {
                       reports={items}
                       onItemSelect={props.onItemSelected}
                       onItemView={setReport}/>
-                    { isStart && items.length > 0 && items.length === limit &&
+                    { canBack && items.length > 0 && items.length === 25 &&
                       <PaginationController
-                        canBack={isStart}
-                        canForward={isEnd}
-                        onBackward={getPrev}
-                        onForward={getNext}/>
+                        canBack={canBack}
+                        canForward={canForward}
+                        onBackward={onBackward}
+                        onForward={onForward}/>
                     }
                   </>
                   : <InventoryReportEmptyState/>
@@ -99,6 +100,11 @@ const InventoryReportPicker = (props: InventoryReportPickerProps) => {
         isOpen={Boolean(report)}
         report={report}
         onDismiss={() => setReport(null)}/>
+      <Snackbar open={Boolean(error)}>
+        <Alert severity="error">
+          {error?.message}
+        </Alert>
+      </Snackbar>
     </InstantSearch>
   )
 }

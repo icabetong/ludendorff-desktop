@@ -6,24 +6,24 @@ import {
   Button,
   Dialog,
   TextField,
-  Stack
+  Stack,
+  Snackbar,
 } from "@mui/material";
 import { FolderRounded } from "@mui/icons-material";
 import { query, collection, doc, where, getDocs, orderBy, getDoc } from "firebase/firestore";
 import * as Excel from "exceljs";
 import { useSnackbar } from "notistack";
-import { usePagination } from "use-pagination-firestore";
 import { AssetRepository } from "./Asset";
 import AssetImportDataGrid from "./AssetImportDataGrid";
 import { AssetImport } from "./AssetImport";
 import AssetImportEditor from "./AssetImportEditor";
 import { Category, CategoryCore, minimize } from "../category/Category";
 import CategoryPicker from "../category/CategoryPicker";
-import useQueryLimit from "../shared/hooks/useQueryLimit";
+import usePagination from "../shared/hooks/usePagination";
 import { EditorAppBar, EditorContent, EditorRoot, SlideUpTransition, useDialog } from "../../components";
 import { firestore } from "../../index";
-import { assetCollection, categoryCollection, categoryName } from "../../shared/const";
-import { isDev } from "../../shared/utils";
+import { assetCollection, categoryCollection, categoryId, categoryName } from "../../shared/const";
+import { isDev, newId } from "../../shared/utils";
 import AssetImportDuplicate from "./AssetImportDuplicate";
 import { GroupedArray } from "../shared/types/GroupedArray";
 
@@ -35,7 +35,6 @@ type AssetImportScreenProps = {
 const AssetImportScreen = (props: AssetImportScreenProps) => {
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
-  const { limit } = useQueryLimit('categoryQueryLimit');
   const show = useDialog();
   const [name, setName] = useState<String>("");
   const [isWorking, setWorking] = useState(false);
@@ -45,6 +44,9 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
   const [asset, setAsset] = useState<AssetImport | undefined>(undefined);
   const [checked, setChecked] = useState<string[]>([]);
   const [isPickerOpen, setPickerOpen] = useState(false);
+  const [stockNumbers, setStockNumbers] = useState<string[]>(() => {
+    return Array.from(new Set(importedAssets.map((asset) => asset.stockNumber)));
+  });
 
   useEffect(() => {
     async function verify(stockNumber: string) {
@@ -63,7 +65,10 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
     }
 
     check()
-      .then((data) => setImportedAssets(data))
+      .then((data) => {
+        setImportedAssets(data);
+        setStockNumbers(Array.from(new Set(data.map((asset) => asset.stockNumber))));
+      })
       .catch(error => {
         if (isDev) console.log(error)
       }).finally(() => setWorking(false));
@@ -114,10 +119,8 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
     onCategoryPickerDismiss();
   }
 
-  const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<Category>(
-    query(collection(firestore, categoryCollection), orderBy(categoryName, "asc")), {
-      limit: limit
-    }
+  const { items, isLoading, error, canBack, canForward, onBackward, onForward } = usePagination<Category>(
+    query(collection(firestore, categoryCollection), orderBy(categoryId, "asc")), categoryId, 25
   );
 
   const onAssetEditorCommit = (asset: AssetImport, previousStockNumber: string | undefined) => {
@@ -170,6 +173,7 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
           }
 
           let asset: AssetImport = {
+            id: newId(),
             stockNumber: sheet.getCell(row, 1).text,
             description: sheet.getCell(row, 2).text,
             category: category ? category : undefined,
@@ -287,17 +291,23 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
       <AssetImportDuplicate
         isOpen={duplicates.length > 0}
         assets={duplicates}
+        stockNumbers={stockNumbers}
         onContinue={onDuplicatesCleared}/>
       <CategoryPicker
         categories={items}
         isOpen={isPickerOpen}
         isLoading={isLoading}
-        canBack={isStart}
-        canForward={isEnd}
-        onBackward={getPrev}
-        onForward={getNext}
+        canBack={canBack}
+        canForward={canForward}
+        onBackward={onBackward}
+        onForward={onForward}
         onDismiss={onCategoryPickerDismiss}
         onSelectItem={onCategorySelected}/>
+      <Snackbar open={Boolean(error)}>
+        <Alert severity="error">
+          {error?.message}
+        </Alert>
+      </Snackbar>
     </>
   )
 }

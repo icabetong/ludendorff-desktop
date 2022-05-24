@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import {
+  Alert,
   Box,
   Button,
   Container,
@@ -13,6 +14,7 @@ import {
   IconButton,
   InputAdornment,
   MenuItem,
+  Snackbar,
   TextField,
   Tooltip,
   useMediaQuery,
@@ -20,18 +22,17 @@ import {
 } from "@mui/material";
 import { LoadingButton } from "@mui/lab";
 import { useSnackbar } from "notistack";
-import { collection, doc, orderBy, query, getDoc } from "firebase/firestore";
+import { collection, doc, orderBy, query, limit, getDoc } from "firebase/firestore";
 
 import { Asset, AssetRepository } from "./Asset";
-import { minimize, Category, CategoryCore } from "../category/Category";
+import { minimize, Category, CategoryCore, CategoryRepository } from "../category/Category";
 import CategoryPicker from "../category/CategoryPicker";
 import QrCodeViewComponent from "../qrcode/QrCodeViewComponent";
-import { assetCollection, categoryCollection, categoryName } from "../../shared/const";
+import { assetCollection, categoryCollection, categoryId } from "../../shared/const";
 import { firestore } from "../../index";
 import { isDev } from "../../shared/utils";
-import { usePagination } from "use-pagination-firestore";
 import { ArrowDropDownOutlined } from "@mui/icons-material";
-import useQueryLimit from "../shared/hooks/useQueryLimit";
+import usePagination from "../shared/hooks/usePagination";
 import { CurrencyFormatCustom } from "../../components";
 
 type AssetEditorProps = {
@@ -61,26 +62,19 @@ const AssetEditor = (props: AssetEditorProps) => {
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isQRCodeOpen, setQRCodeOpen] = useState(false);
   const [isWriting, setWriting] = useState(false);
-  const { limit } = useQueryLimit('categoryQueryLimit');
 
   useEffect(() => {
-    const onFetchSubcategories = async () => {
-      if (props.asset?.category) {
-        let reference = doc(firestore, categoryCollection, props.asset?.category.categoryId);
-        let snapshot = await getDoc(reference);
-        return snapshot.data() as Category;
-      }
-      return null;
-    }
-
     setCategory(props.asset?.category);
-    onFetchSubcategories()
-      .then((data) => {
-        if (data) setSubcategories(data.subcategories);
-      }).catch((err) => {
-      if (isDev) console.log(err);
-    });
-  }, [props.asset]);
+    let categoryId = category?.categoryId;
+    if (categoryId) {
+      CategoryRepository.fetch(categoryId)
+        .then((data) => {
+          if (data) setSubcategories(data.subcategories);
+        }).catch((err) => {
+        if (isDev) console.log(err);
+      });
+    }
+  }, [props.asset, category?.categoryId]);
 
   useEffect(() => {
     if (props.isOpen) {
@@ -106,9 +100,9 @@ const AssetEditor = (props: AssetEditorProps) => {
   const onQRCodeView = () => setQRCodeOpen(true);
   const onQRCodeDismiss = () => setQRCodeOpen(false);
 
-  const { items, isLoading, isStart, isEnd, getPrev, getNext } = usePagination<Category>(
-    query(collection(firestore, categoryCollection), orderBy(categoryName, "asc")),
-    { limit: limit }
+  const { items, isLoading, error, canBack, onBackward, onForward } = usePagination<Category>(
+    query(collection(firestore, categoryCollection), orderBy(categoryId, "asc"), limit(25)),
+    categoryId, 25
   );
 
   let previousTypeId: string | undefined = undefined;
@@ -206,7 +200,7 @@ const AssetEditor = (props: AssetEditorProps) => {
                   xs={6}
                   sx={{ maxWidth: '100%', pt: 0, pl: 0 }}>
                   { props.asset
-                    ? <Tooltip title={<>{t("info.stock_number_cannot_be_changed")}</>}>
+                    ?  <Tooltip title={<>{t("info.stock_number_cannot_be_changed")}</>}>
                         <span>{stockNumberField}</span>
                       </Tooltip>
                     : stockNumberField
@@ -343,16 +337,21 @@ const AssetEditor = (props: AssetEditorProps) => {
         isLoading={isLoading}
         onDismiss={onPickerDismiss}
         onSelectItem={onCategoryChanged}
-        canBack={isStart}
-        canForward={isEnd}
-        onBackward={getPrev}
-        onForward={getNext}/>
+        canBack={canBack}
+        canForward={true}
+        onBackward={onBackward}
+        onForward={onForward}/>
       { props.asset &&
         <QrCodeViewComponent
           isOpened={isQRCodeOpen}
           assetId={props.asset.stockNumber}
           onClose={onQRCodeDismiss}/>
       }
+      <Snackbar open={Boolean(error)}>
+        <Alert severity="error">
+          {error?.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

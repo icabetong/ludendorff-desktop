@@ -20,10 +20,30 @@ const UserDataGridCore = (props: UserDataGridProps) => {
   const { density, onDensityChanged } = useDensity('userDensity');
 
   const columns = [
-    { field: userId, headerName: t("field.id"), hide: true },
-    { field: lastName, headerName: t("field.last_name"), flex: 1 },
-    { field: firstName, headerName: t("field.first_name"), flex: 1 },
-    { field: email, headerName: t("field.email"), flex: 1 },
+    {
+      field: userId,
+      headerName: t("field.id"),
+      sortable: false,
+      hide: true
+    },
+    {
+      field: lastName,
+      headerName: t("field.last_name"),
+      sortable: false,
+      flex: 1
+    },
+    {
+      field: firstName,
+      headerName: t("field.first_name"),
+      sortable: false,
+      flex: 1
+    },
+    {
+      field: email,
+      headerName: t("field.email"),
+      sortable: false,
+      flex: 1
+    },
     {
       field: position,
       headerName: t("field.position"),
@@ -56,7 +76,7 @@ const UserDataGridCore = (props: UserDataGridProps) => {
   ]
   const { visibleColumns, onVisibilityChange } = useColumnVisibilityModel('userColumns', columns);
 
-  const hideFooter = props.isSearching || (props.canForward && props.items.length > 0 && props.items.length <= props.size)
+  const hideFooter = props.isSearching
   return (
     <DataGrid
       hideFooter={hideFooter}
@@ -65,16 +85,14 @@ const UserDataGridCore = (props: UserDataGridProps) => {
         LoadingOverlay: GridLinearProgress,
         NoRowsOverlay: UserDataGridEmptyState,
         Toolbar: GridToolbar,
-        Pagination: props.canForward && props.items.length > 0 && props.items.length <= props.size ? DataGridPaginationController : null,
+        Pagination: hideFooter ? null : DataGridPaginationController,
       }}
       componentsProps={{
         pagination: {
-          size: props.size,
           canBack: props.canBack,
           canForward: props.canForward,
           onBackward: props.onBackward,
-          onForward: props.onForward,
-          onPageSizeChanged: props.onPageSizeChanged
+          onForward: props.onForward
         }
       }}
       sortingMode="server"

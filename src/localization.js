@@ -101,6 +101,7 @@ const resources = {
         spreadsheet_file: "Spreadsheet file",
         worksheet_name: "Worksheet name",
         duplicate_items: "Duplicate Items",
+        inventory_report_source: "Inventory Report Source",
       },
       placeholder: {
         none: "None",
@@ -343,7 +344,9 @@ const resources = {
         reset_email_sent: "Check your email",
         reset_email_sent_summary: "An email has been sent to your email address. Follow the directions in the email to reset your password.",
         duplicate_asset_items: "Duplicate Items",
-        duplicate_asset_items_summary: "There are duplicate items found on the data read from the selected spreadsheet file. Resolve these conflicts first to continue."
+        duplicate_asset_items_summary: "There are duplicate items found on the data read from the selected spreadsheet file. Resolve these conflicts first to continue.",
+        data_missing: "Some data are missing",
+        data_missing_summary: "There are some fields or entries that have missing values. Are you sure you want to proceed saving this record?"
       },
       template: {
         full_name: "{{first}} {{last}}",
@@ -355,13 +358,13 @@ const resources = {
         entity: "{{name}}, ({{position}})"
       },
       empty: {
-        asset: "No Assets Added",
+        asset_header: "No Assets Added",
         asset_summary: "There are no assets available.",
-        category: "No Categories Added",
+        category_header: "No Categories Added",
         category_summary: "There are no categories available that can be used to organize the assets.",
-        user: "No Users Added",
+        user_header: "No Users Added",
         user_summary: "There are no users available.",
-        search: "No Results",
+        search_header: "No Results",
         search_summary: "There are no items matched on your query \"{{query}}\"",
         inventory_header: "No Inventory Reports Available",
         inventory_summary: "There are no Physical Count of Inventories Reports that are available on the database.",
@@ -370,6 +373,8 @@ const resources = {
         issued_reports_header: "No Issued Items Reports Available",
         issued_reports_summary: "There are no Supplies and Materials Issued Reports that are available on the database.",
         subcategories: "No subcategories added",
+        no_duplicates_header: "No Duplicates Detected",
+        no_duplicates_summary: "There are no duplicate records detected"
       },
       document: {
         stock_card: "Stock Card",
