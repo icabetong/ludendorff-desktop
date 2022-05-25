@@ -7,26 +7,25 @@ import {
   Dialog,
   TextField,
   Stack,
-  Snackbar,
 } from "@mui/material";
 import { FolderRounded } from "@mui/icons-material";
-import { query, collection, doc, where, getDocs, orderBy, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import * as Excel from "exceljs";
 import { useSnackbar } from "notistack";
 import { AssetRepository } from "./Asset";
 import AssetImportDataGrid from "./AssetImportDataGrid";
 import { AssetImport } from "./AssetImport";
 import AssetImportEditor from "./AssetImportEditor";
-import { Category, CategoryCore, minimize } from "../category/Category";
+import { Category, minimize } from "../category/Category";
 import CategoryPicker from "../category/CategoryPicker";
-import usePagination from "../shared/hooks/usePagination";
+import { useCategories } from "../category/CategoryProvider";
 import { useDialog } from "../../components/dialog/DialogProvider";
 import { EditorAppBar } from "../../components/editor/EditorAppBar";
 import { EditorContent } from "../../components/editor/EditorContent";
 import { EditorRoot } from "../../components/editor/EditorRoot";
 import { SlideUpTransition } from "../../components/transition/SlideUpTransition";
 import { firestore } from "../../index";
-import { assetCollection, categoryCollection, categoryId, categoryName } from "../../shared/const";
+import { assetCollection } from "../../shared/const";
 import { isDev, newId } from "../../shared/utils";
 import AssetImportDuplicate from "./AssetImportDuplicate";
 import { GroupedArray } from "../shared/types/GroupedArray";
@@ -40,6 +39,7 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const show = useDialog();
+  const categories = useCategories();
   const [name, setName] = useState<String>("");
   const [isWorking, setWorking] = useState(false);
   const [assets, setAssets] = useState<AssetImport[]>([]);
@@ -62,6 +62,7 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
       for (let asset of assets) {
         let currentAsset = asset;
         let status = await verify(asset.stockNumber);
+
         currentAsset.status = status ? "exists" : "absent";
         current.push(asset);
       }
@@ -123,10 +124,6 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
     onCategoryPickerDismiss();
   }
 
-  const { items, isLoading, error, canBack, canForward, onBackward, onForward } = usePagination<Category>(
-    query(collection(firestore, categoryCollection), orderBy(categoryId, "asc")), categoryId, 25
-  );
-
   const onAssetEditorCommit = (asset: AssetImport, previousStockNumber: string | undefined) => {
     if (!previousStockNumber) return;
 
@@ -167,20 +164,16 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
       let sheet = data.worksheets[0];
       let assets = [];
       for (let row = 1; row <= sheet.actualRowCount; row++) {
+        console.log(sheet.actualColumnCount)
         if (sheet.actualColumnCount >= 7) {
           const name = sheet.getCell(row, 3).text;
-          let category: CategoryCore | null = null;
-          let snapshot = await getDocs(query(collection(firestore, categoryCollection),
-              where(categoryName, "==", name)));
-          if (snapshot.docs.length > 0) {
-            category = minimize(snapshot.docs[0].data() as Category);
-          }
+          let category = categories.find((category) => category.categoryName === name);
 
           let asset: AssetImport = {
             id: newId(),
             stockNumber: sheet.getCell(row, 1).text,
             description: sheet.getCell(row, 2).text,
-            category: category ? category : undefined,
+            category: category ? minimize(category) : undefined,
             subcategory: sheet.getCell(row, 4).text,
             unitOfMeasure: sheet.getCell(row, 5).text,
             unitValue: parseFloat(sheet.getCell(row, 6).text),
@@ -298,20 +291,10 @@ const AssetImportScreen = (props: AssetImportScreenProps) => {
         stockNumbers={stockNumbers}
         onContinue={onDuplicatesCleared}/>
       <CategoryPicker
-        categories={items}
+        categories={categories}
         isOpen={isPickerOpen}
-        isLoading={isLoading}
-        canBack={canBack}
-        canForward={canForward}
-        onBackward={onBackward}
-        onForward={onForward}
         onDismiss={onCategoryPickerDismiss}
         onSelectItem={onCategorySelected}/>
-      <Snackbar open={Boolean(error)}>
-        <Alert severity="error">
-          {error?.message}
-        </Alert>
-      </Snackbar>
     </>
   )
 }
